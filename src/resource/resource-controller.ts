@@ -66,7 +66,14 @@ export class ResourceController<T extends StringIndexedObject> {
       // Schema validator uses pre transformation parameters
       const isValid = this.schemaValidator(
         // @ts-expect-error Non esm package
-        cleanDeep(originalParameters, { nullValues: true })
+        cleanDeep(originalParameters, {
+          nullValues: true,
+          undefinedValues: true,
+          emptyArrays: false,
+          emptyStrings: false,
+          emptyObjects: false,
+          NaNValues: false
+        })
       );
 
       if (!isValid) {
@@ -153,10 +160,11 @@ export class ResourceController<T extends StringIndexedObject> {
     desired: Partial<T> | null,
     state: Partial<T> | null,
     isStateful = false,
+    commandType = 'plan',
   ): Promise<Plan<T>> {
     this.validatePlanInputs(core, desired, state, isStateful);
     const context: RefreshContext<T> = {
-      commandType: 'plan',
+      commandType: commandType as 'plan' | 'validationPlan',
       isStateful,
       originalDesiredConfig: structuredClone(desired),
     };

@@ -6,7 +6,7 @@ import { ResourceSettings } from './resource-settings.js';
 
 export interface RefreshContext<T extends StringIndexedObject> {
   isStateful: boolean;
-  commandType: 'destroy' | 'import' | 'plan';
+  commandType: 'destroy' | 'import' | 'plan' | 'validationPlan';
   originalDesiredConfig: Partial<T> | null;
 }
 

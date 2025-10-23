@@ -215,7 +215,8 @@ export class Plugin {
         plan.coreParameters,
         plan.desiredConfig,
         plan.desiredConfig ?? plan.currentConfig,
-        plan.isStateful
+        plan.isStateful,
+        'validationPlan'
       );
 
       await getPty().kill();
