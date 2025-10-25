@@ -21,6 +21,19 @@ class CodifyCliSenderImpl {
     })
   }
 
+  async getCodifyCliCredentials(): Promise<string> {
+    const data = await this.sendAndWaitForResponse(<IpcMessageV2>{
+      cmd: MessageCmd.CODIFY_CREDENTIALS_REQUEST,
+      data: {},
+    })
+
+    if (typeof data.data !== 'string') {
+      throw new Error('Expected string back from credentials request');
+    }
+
+    return data.data;
+  }
+
   private async sendAndWaitForResponse(message: IpcMessageV2): Promise<IpcMessageV2> {
     return new Promise((resolve) => {
       const requestId = nanoid(8);

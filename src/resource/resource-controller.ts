@@ -59,7 +59,7 @@ export class ResourceController<T extends StringIndexedObject> {
     parameters: Partial<T>,
   ): Promise<ValidateResponseData['resourceValidations'][0]> {
     const originalParameters = structuredClone(parameters);
-    await this.applyTransformParameters(parameters);
+    await this.applyTransformations(parameters, undefined, true);
     this.addDefaultValues(parameters);
 
     if (this.schemaValidator) {
@@ -143,10 +143,10 @@ export class ResourceController<T extends StringIndexedObject> {
       const paramsToMatch = structuredClone(resourceToMatch.parameters) as Partial<T>;
 
       this.addDefaultValues(originalParams);
-      await this.applyTransformParameters(originalParams);
+      await this.applyTransformations(originalParams);
 
       this.addDefaultValues(paramsToMatch);
-      await this.applyTransformParameters(paramsToMatch);
+      await this.applyTransformations(paramsToMatch);
 
       const match = parameterMatcher(originalParams, paramsToMatch);
       if (match) {
@@ -170,10 +170,10 @@ export class ResourceController<T extends StringIndexedObject> {
     };
 
     this.addDefaultValues(desired);
-    await this.applyTransformParameters(desired);
+    await this.applyTransformations(desired);
 
     this.addDefaultValues(state);
-    await this.applyTransformParameters(state);
+    await this.applyTransformations(state);
 
     // Parse data from the user supplied config
     const parsedConfig = new ConfigParser(desired, state, this.parsedSettings.statefulParameters)
@@ -221,7 +221,7 @@ export class ResourceController<T extends StringIndexedObject> {
     parameters: Partial<T>
   ): Promise<Plan<T>> {
     this.addDefaultValues(parameters);
-    await this.applyTransformParameters(parameters);
+    await this.applyTransformations(parameters);
 
     // Use refresh parameters if specified, otherwise try to refresh as many parameters as possible here
     const parametersToRefresh = this.settings.importAndDestroy?.refreshKeys
@@ -298,7 +298,7 @@ export class ResourceController<T extends StringIndexedObject> {
     }
 
     this.addDefaultValues(parameters);
-    await this.applyTransformParameters(parameters);
+    await this.applyTransformations(parameters);
 
     // Use refresh parameters if specified, otherwise try to refresh as many parameters as possible here
     const parametersToRefresh = this.getParametersToRefreshForImport(parameters, context);
@@ -325,7 +325,7 @@ export class ResourceController<T extends StringIndexedObject> {
       ?.map((r, idx) => ({ ...r, ...statefulCurrentParameters[idx] }))
 
     for (const result of resultParametersArray) {
-      await this.applyTransformParameters(result, { original: context.originalDesiredConfig });
+      await this.applyTransformations(result, { original: context.originalDesiredConfig });
       this.removeDefaultValues(result, parameters);
     }
 
@@ -408,9 +408,9 @@ ${JSON.stringify(refresh, null, 2)}
     }
   }
 
-  private async applyTransformParameters(config: Partial<T> | null, reverse?: {
+  private async applyTransformations(config: Partial<T> | null, reverse?: {
     original: Partial<T> | null
-  }): Promise<void> {
+  }, skipConfigTransformation = false): Promise<void> {
     if (!config) {
       return;
     }
@@ -425,7 +425,7 @@ ${JSON.stringify(refresh, null, 2)}
         : await inputTransformation.to(config[key]);
     }
 
-    if (this.settings.transformation) {
+    if (this.settings.transformation && !skipConfigTransformation) {
       const transformed = reverse
         ? await this.settings.transformation.from({ ...config }, reverse.original)
         : await this.settings.transformation.to({ ...config })
