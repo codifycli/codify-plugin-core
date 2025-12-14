@@ -62,11 +62,14 @@ export class Plugin {
         .map((r) => ({
           dependencies: r.dependencies,
           type: r.typeId,
+          sensitiveParameters: Object.entries(r.settings.parameterSettings ?? {})
+            .filter(([, v]) => v?.isSensitive)
+            .map(([k]) => k),
         }))
     }
   }
 
-  async getResourceInfo(data: GetResourceInfoRequestData): Promise<GetResourceInfoResponseData> {
+  getResourceInfo(data: GetResourceInfoRequestData): GetResourceInfoResponseData {
     if (!this.resourceControllers.has(data.type)) {
       throw new Error(`Cannot get info for resource ${data.type}, resource doesn't exist`);
     }
@@ -84,6 +87,10 @@ export class Plugin {
     const allowMultiple = resource.settings.allowMultiple !== undefined
       && resource.settings.allowMultiple !== false;
 
+    const sensitiveParameters = Object.entries(resource.settings.parameterSettings ?? {})
+      .filter(([, v]) => v?.isSensitive)
+      .map(([k]) => k);
+
     return {
       plugin: this.name,
       type: data.type,
@@ -96,6 +103,7 @@ export class Plugin {
       import: {
         requiredParameters: requiredPropertyNames,
       },
+      sensitiveParameters,
       allowMultiple
     }
   }

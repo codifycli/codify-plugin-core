@@ -163,7 +163,7 @@ export interface ResourceSettings<T extends StringIndexedObject> {
      * @param input
      * @param context
      */
-    refreshMapper?: (input: Partial<T>, context: RefreshContext<T>) => Partial<T>
+    refreshMapper?: (input: Partial<T>, context: RefreshContext<T>) => Partial<T>;
   }
 }
 
@@ -206,6 +206,13 @@ export interface DefaultParameterSetting {
    * is mainly used to determine the equality method when performing diffing.
    */
   type?: ParameterSettingType;
+
+  /**
+   * Mark the field as sensitive. Defaults to false. This has two side effects:
+   * 1. When displaying this field in the plan, it will be replaced with asterisks
+   * 2. When importing, resources with sensitive fields will be skipped unless the user explicitly allows it.
+   */
+  isSensitive?: boolean;
 
   /**
    * Default value for the parameter. If a value is not provided in the config, then this value will be used.

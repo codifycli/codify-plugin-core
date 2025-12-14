@@ -87,7 +87,7 @@ describe('Change set tests', () => {
   it('Correctly diffs two resource configs (destory)', () => {
     const cs = ChangeSet.destroy({
       propA: 'prop',
-      propB: 'propB'
+      propB: 'propB',
     });
 
     expect(cs.parameterChanges.length).to.eq(2);

@@ -142,19 +142,23 @@ describe('Resource tests for stateful plans', () => {
             name: "propA",
             newValue: "propA",
             previousValue: "propA",
-            operation: ParameterOperation.NOOP
+            operation: ParameterOperation.NOOP,
+            isSensitive: false,
+
           },
           {
             name: "propB",
             newValue: 10,
             previousValue: null,
-            operation: ParameterOperation.ADD
+            operation: ParameterOperation.ADD,
+            isSensitive: false,
           },
           {
             name: "propC",
             newValue: 'propC',
             previousValue: 'propC',
-            operation: ParameterOperation.NOOP
+            operation: ParameterOperation.NOOP,
+            isSensitive: false,
           },
         ])
       },
@@ -214,25 +218,29 @@ describe('Resource tests for stateful plans', () => {
             name: "propA",
             newValue: "propA",
             previousValue: "propA",
-            operation: ParameterOperation.NOOP
+            operation: ParameterOperation.NOOP,
+            isSensitive: false,
           },
           {
             name: "propB",
             newValue: 10,
             previousValue: null,
-            operation: ParameterOperation.ADD
+            operation: ParameterOperation.ADD,
+            isSensitive: false,
           },
           {
             name: "propC",
             newValue: 'propC',
             previousValue: 'propC',
-            operation: ParameterOperation.NOOP
+            operation: ParameterOperation.NOOP,
+            isSensitive: false,
           },
           {
             name: "propD",
             newValue: 'propD',
             previousValue: null,
-            operation: ParameterOperation.ADD
+            operation: ParameterOperation.ADD,
+            isSensitive: false,
           },
         ])
       },

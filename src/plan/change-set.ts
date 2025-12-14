@@ -1,6 +1,7 @@
 import { ParameterOperation, ResourceOperation, StringIndexedObject } from 'codify-schemas';
 
 import { ParsedParameterSetting } from '../resource/parsed-resource-settings.js';
+import { ResourceSettings } from '../resource/resource-settings.js';
 
 /**
  * A parameter change describes a parameter level change to a resource.
@@ -25,6 +26,11 @@ export interface ParameterChange<T extends StringIndexedObject> {
    * The new value of the resource (the desired value)
    */
   newValue: any | null;
+
+  /**
+   * Whether the parameter is sensitive
+   */
+  isSensitive: boolean;
 }
 
 // Change set will coerce undefined values to null because undefined is not valid JSON
@@ -60,37 +66,40 @@ export class ChangeSet<T extends StringIndexedObject> {
     return new ChangeSet<T>(ResourceOperation.NOOP, []);
   }
 
-  static create<T extends StringIndexedObject>(desired: Partial<T>): ChangeSet<T> {
+  static create<T extends StringIndexedObject>(desired: Partial<T>, settings?: ResourceSettings<T>): ChangeSet<T> {
     const parameterChanges = Object.entries(desired)
       .map(([k, v]) => ({
         name: k,
         operation: ParameterOperation.ADD,
         previousValue: null,
         newValue: v ?? null,
+        isSensitive: settings?.parameterSettings?.[k]?.isSensitive ?? false,
       }))
 
     return new ChangeSet(ResourceOperation.CREATE, parameterChanges);
   }
 
-  static noop<T extends StringIndexedObject>(parameters: Partial<T>): ChangeSet<T> {
+  static noop<T extends StringIndexedObject>(parameters: Partial<T>, settings?: ResourceSettings<T>): ChangeSet<T> {
     const parameterChanges = Object.entries(parameters)
       .map(([k, v]) => ({
         name: k,
         operation: ParameterOperation.NOOP,
         previousValue: v ?? null,
         newValue: v ?? null,
+        isSensitive: settings?.parameterSettings?.[k]?.isSensitive ?? false,
       }))
 
     return new ChangeSet(ResourceOperation.NOOP, parameterChanges);
   }
 
-  static destroy<T extends StringIndexedObject>(current: Partial<T>): ChangeSet<T> {
+  static destroy<T extends StringIndexedObject>(current: Partial<T>, settings?: ResourceSettings<T>): ChangeSet<T> {
     const parameterChanges = Object.entries(current)
       .map(([k, v]) => ({
         name: k,
         operation: ParameterOperation.REMOVE,
         previousValue: v ?? null,
         newValue: null,
+        isSensitive: settings?.parameterSettings?.[k]?.isSensitive ?? false,
       }))
 
     return new ChangeSet(ResourceOperation.DESTROY, parameterChanges);
@@ -160,6 +169,7 @@ export class ChangeSet<T extends StringIndexedObject> {
           previousValue: current[k] ?? null,
           newValue: desired[k] ?? null,
           operation: ParameterOperation.NOOP,
+          isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
         })
 
         continue;
@@ -171,6 +181,7 @@ export class ChangeSet<T extends StringIndexedObject> {
           previousValue: current[k] ?? null,
           newValue: null,
           operation: ParameterOperation.REMOVE,
+          isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
         })
 
         continue;
@@ -182,6 +193,7 @@ export class ChangeSet<T extends StringIndexedObject> {
           previousValue: null,
           newValue: desired[k] ?? null,
           operation: ParameterOperation.ADD,
+          isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
         })
 
         continue;
@@ -192,6 +204,7 @@ export class ChangeSet<T extends StringIndexedObject> {
         previousValue: current[k] ?? null,
         newValue: desired[k] ?? null,
         operation: ParameterOperation.MODIFY,
+        isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
       })
     }
 

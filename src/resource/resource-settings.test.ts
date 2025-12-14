@@ -717,12 +717,14 @@ describe('Resource parameter tests', () => {
           operation: ParameterOperation.NOOP,
           previousValue: null,
           newValue: 'setting',
+          isSensitive: false,
         },
         {
           name: 'propB',
           operation: ParameterOperation.NOOP,
           previousValue: 64,
           newValue: 64,
+          isSensitive: false,
         }
       ])
     )
