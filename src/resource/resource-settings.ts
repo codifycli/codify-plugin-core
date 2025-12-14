@@ -28,6 +28,12 @@ export interface ResourceSettings<T extends StringIndexedObject> {
   schema?: Partial<JSONSchemaType<T | any>>;
 
   /**
+   * Mark the resource as sensitive. Defaults to false. This prevents the resource from automatically being imported by init and import.
+   * This differs from the parameter level sensitivity which also prevents the parameter value from being displayed in the plan.
+   */
+  isSensitive?: boolean;
+
+  /**
    * Allow multiple of the same resource to unique. Set truthy if
    * multiples are allowed, for example for applications, there can be multiple copy of the same application installed
    * on the system. Or there can be multiple git repos. Defaults to false.
