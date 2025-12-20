@@ -76,6 +76,7 @@ export class Plugin {
             dependencies: r.dependencies,
             type: r.typeId,
             sensitiveParameters,
+            operatingSystems: r.settings.operatingSystems,
           }
         })
     }
@@ -122,6 +123,7 @@ export class Plugin {
       import: {
         requiredParameters: requiredPropertyNames,
       },
+      operatingSystems: resource.settings.operatingSystems,
       sensitiveParameters,
       allowMultiple
     }

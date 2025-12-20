@@ -64,7 +64,7 @@ export class SequentialPty implements IPty {
         output.push(data.toString());
       })
 
-      const stdinListener = (data) => {
+      const stdinListener = (data: any) => {
         mPty.write(data.toString());
       };
 

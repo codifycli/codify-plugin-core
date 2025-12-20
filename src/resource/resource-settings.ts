@@ -1,5 +1,5 @@
 import { JSONSchemaType } from 'ajv';
-import { StringIndexedObject } from 'codify-schemas';
+import { OS, StringIndexedObject } from 'codify-schemas';
 import isObjectsEqual from 'lodash.isequal'
 import path from 'node:path';
 
@@ -27,6 +27,11 @@ export interface ResourceSettings<T extends StringIndexedObject> {
    * The typeId of the resource.
    */
   id: string;
+
+  /**
+   * List of supported operating systems
+   */
+  operatingSystems: Array<OS>;
 
   /**
    * Schema to validate user configs with. Must be in the format JSON Schema draft07

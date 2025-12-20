@@ -1,3 +1,4 @@
+import { OS } from 'codify-schemas';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -11,7 +12,7 @@ export enum Shell {
 }
 
 export interface SystemInfo {
-  os: 'Darwin' | 'Linux' | 'Windows_NT';
+  os: OS;
   shell: Shell;
 }
 
