@@ -21,10 +21,11 @@ import { ApplyValidationError } from '../common/errors.js';
 import { Plan } from '../plan/plan.js';
 import { BackgroundPty } from '../pty/background-pty.js';
 import { getPty } from '../pty/index.js';
+import { SequentialPty } from '../pty/seqeuntial-pty.js';
 import { Resource } from '../resource/resource.js';
 import { ResourceController } from '../resource/resource-controller.js';
-import { ptyLocalStorage } from '../utils/pty-local-storage.js';
 import { VerbosityLevel } from '../utils/internal-utils.js';
+import { ptyLocalStorage } from '../utils/pty-local-storage.js';
 
 export class Plugin {
   planStorage: Map<string, Plan<any>>;
@@ -232,7 +233,7 @@ export class Plugin {
       throw new Error('Malformed plan with resource that cannot be found');
     }
 
-    await resource.apply(plan);
+    await ptyLocalStorage.run(new SequentialPty(), async () => resource.apply(plan))
 
     // Validate using desired/desired. If the apply was successful, no changes should be reported back.
     // Default back desired back to current if it is not defined (for destroys only)

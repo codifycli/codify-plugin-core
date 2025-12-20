@@ -1,7 +1,7 @@
 import { ptyLocalStorage } from '../utils/pty-local-storage.js';
 
 export interface SpawnResult {
-  status: 'success' | 'error';
+  status: 'error' | 'success';
   exitCode: number;
   data: string;
 }
@@ -11,9 +11,25 @@ export enum SpawnStatus {
   ERROR = 'error',
 }
 
+/**
+ * Represents the configuration options for spawning a child process.
+ *
+ * @interface SpawnOptions
+ *
+ * @property {string} [cwd] - Specifies the working directory of the child process.
+ * If not provided, the current working directory of the parent process is used.
+ *
+ * @property {Record<string, unknown>} [env] - Defines environment key-value pairs
+ * that will be available to the child process. If not specified, the child process
+ * will inherit the environment variables of the parent process.
+ *
+ * @property {boolean} [interactive] - Indicates whether the spawned process needs
+ * to be interactive. Only works within apply (not plan). Defaults to true.
+ */
 export interface SpawnOptions {
   cwd?: string;
   env?: Record<string, unknown>,
+  interactive?: boolean,
 }
 
 export class SpawnError extends Error {
