@@ -1,4 +1,4 @@
-import { ResourceConfig, StringIndexedObject } from 'codify-schemas';
+import { OS, ResourceConfig, StringIndexedObject } from 'codify-schemas';
 import { ResourceSettings } from '../resource/resource-settings.js';
 import { Plan } from '../plan/plan.js';
 import { Resource } from '../resource/resource.js';
@@ -35,7 +35,10 @@ export interface TestConfig extends StringIndexedObject {
 
 export class TestResource extends Resource<TestConfig> {
   getSettings(): ResourceSettings<TestConfig> {
-    return { id: 'type' }
+    return {
+      id: 'type',
+      operatingSystems: [OS.Darwin]
+    }
   }
 
   create(plan: CreatePlan<TestConfig>): Promise<void> {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Plan } from './plan.js';
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { OS, ParameterOperation, ResourceOperation } from 'codify-schemas';
 import { TestConfig, TestResource } from '../utils/test-utils.test.js';
 import { ResourceController } from '../resource/resource-controller.js';
 import { ParsedResourceSettings } from '../resource/parsed-resource-settings.js';
@@ -152,6 +152,7 @@ describe('Plan entity tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propZ: { type: 'array', isElementEqual: (a, b) => b.includes(a) }
           }
@@ -184,6 +185,7 @@ describe('Plan entity tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propZ: {
               type: 'array',
@@ -236,6 +238,7 @@ describe('Plan entity tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string' },
             propB: { type: 'string', canModify: true },
@@ -289,6 +292,7 @@ describe('Plan entity tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string' },
             propB: { type: 'string', canModify: true },
@@ -351,6 +355,7 @@ function createTestResource() {
     getSettings(): ResourceSettings<TestConfig> {
       return {
         id: 'type',
+        operatingSystems: [OS.Darwin],
         parameterSettings: {
           propA: {
             default: 'defaultA'

@@ -3,8 +3,9 @@ import { TestConfig, TestResource } from '../utils/test-utils.test.js';
 import { getPty, IPty } from './index.js';
 import { Plugin } from '../plugin/plugin.js'
 import { CreatePlan } from '../plan/plan-types.js';
-import { ResourceOperation } from 'codify-schemas';
+import { OS, ResourceOperation } from 'codify-schemas';
 import { ResourceSettings } from '../resource/resource-settings.js';
+import { SequentialPty } from './seqeuntial-pty.js';
 
 describe('General tests for PTYs', () => {
   it('Can get pty within refresh', async () => {
@@ -45,7 +46,8 @@ describe('General tests for PTYs', () => {
     const testResource1 = new class extends TestResource {
       getSettings(): ResourceSettings<TestConfig> {
         return {
-          id: 'type1'
+          id: 'type1',
+          operatingSystems: [OS.Darwin],
         }
       }
 
@@ -64,6 +66,7 @@ describe('General tests for PTYs', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type2',
+          operatingSystems: [OS.Darwin],
         }
       }
 
@@ -103,11 +106,11 @@ describe('General tests for PTYs', () => {
     expect(pty1).to.eq(pty2);
   })
 
-  it('Currently pty not available for apply', async () => {
+  it('Sequential pty should be available for applies', async () => {
     const testResource = new class extends TestResource {
       create(plan: CreatePlan<TestConfig>): Promise<void> {
         const $ = getPty();
-        expect($).to.be.undefined;
+        expect($).to.instanceof(SequentialPty)
       }
     }
 

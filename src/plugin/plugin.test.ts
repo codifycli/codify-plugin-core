@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Plugin } from './plugin.js';
-import { ApplyRequestData, ParameterOperation, ResourceOperation, StringIndexedObject } from 'codify-schemas';
+import { ApplyRequestData, OS, ParameterOperation, ResourceOperation, StringIndexedObject } from 'codify-schemas';
 import { Resource } from '../resource/resource.js';
 import { Plan } from '../plan/plan.js';
 import { spy } from 'sinon';
@@ -17,7 +17,8 @@ interface TestConfig extends StringIndexedObject {
 class TestResource extends Resource<TestConfig> {
   getSettings(): ResourceSettings<TestConfig> {
     return {
-      id: 'testResource'
+      id: 'testResource',
+      operatingSystems: [OS.Darwin],
     };
   }
 
@@ -154,6 +155,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'typeId',
+          operatingSystems: [OS.Darwin],
           schema,
         }
       }
@@ -192,6 +194,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'typeId',
+          operatingSystems: [OS.Darwin],
           schema,
           importAndDestroy: {
             requiredParameters: []
@@ -285,6 +288,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           schema: {
             '$schema': 'http://json-schema.org/draft-07/schema',
             '$id': 'https://www.codifycli.com/ssh-config.json',
@@ -330,6 +334,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           ...super.getSettings(),
+          operatingSystems: [OS.Darwin],
           allowMultiple: {
             identifyingParameters: ['path', 'paths']
           }
@@ -351,6 +356,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           ...super.getSettings(),
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             path: { type: 'directory' },
             paths: { type: 'array', itemType: 'directory' }
@@ -407,6 +413,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'ssh-config',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             hosts: { type: 'stateful', definition: new TestStatefulParameter() }
           },
@@ -454,6 +461,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'ssh-config',
+          operatingSystems: [OS.Darwin],
           allowMultiple: true
         }
       }
@@ -476,6 +484,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'ssh-config',
+          operatingSystems: [OS.Darwin],
         }
       }
     })

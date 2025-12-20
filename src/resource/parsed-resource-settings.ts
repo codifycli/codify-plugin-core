@@ -1,5 +1,5 @@
 import { JSONSchemaType } from 'ajv';
-import { StringIndexedObject } from 'codify-schemas';
+import { OS, StringIndexedObject } from 'codify-schemas';
 
 import { StatefulParameterController } from '../stateful-parameter/stateful-parameter-controller.js';
 import {
@@ -46,16 +46,17 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
   removeStatefulParametersBeforeDestroy?: boolean | undefined;
   dependencies?: string[] | undefined;
   transformation?: InputTransformation;
+
+  operatingSystems!: Array<OS>;
+  isSensitive?: boolean;
+
   private settings: ResourceSettings<T>;
 
   constructor(settings: ResourceSettings<T>) {
     this.settings = settings;
-    this.id = settings.id;
-    this.schema = settings.schema;
-    this.allowMultiple = settings.allowMultiple;
-    this.removeStatefulParametersBeforeDestroy = settings.removeStatefulParametersBeforeDestroy;
-    this.dependencies = settings.dependencies;
-    this.transformation = settings.transformation;
+
+    const { parameterSettings, ...rest } = settings;
+    Object.assign(this, rest);
 
     this.validateSettings();
   }

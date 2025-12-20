@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Plan } from '../plan/plan.js';
 import { spy } from 'sinon';
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { OS, ParameterOperation, ResourceOperation } from 'codify-schemas';
 import {
   TestArrayStatefulParameter,
   TestConfig,
@@ -26,6 +26,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameter }
           },
@@ -71,6 +72,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy }
           },
@@ -105,6 +107,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy },
             propB: { canModify: true },
@@ -137,7 +140,8 @@ describe('Resource parameter tests', () => {
     const statefulParameter = spy(new class extends TestStatefulParameter {
       getSettings(): ParameterSetting {
         return {
-          default: 'abc'
+          default: 'abc',
+          operatingSystems: [OS.Darwin],
         };
       }
 
@@ -150,6 +154,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameter }
           },
@@ -191,6 +196,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy },
           },
@@ -225,6 +231,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy }
           },
@@ -251,6 +258,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             hosts: {
               type: 'array',
@@ -360,6 +368,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy }
           },
@@ -416,6 +425,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterA, order: 3 },
             propB: { type: 'stateful', definition: statefulParameterB, order: 1 },
@@ -494,6 +504,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterA, order: 3 },
             propB: { type: 'stateful', definition: statefulParameterB, order: 1 },
@@ -569,6 +580,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           transformation: {
             to: (desired) => ({
               propA: 'propA',
@@ -610,6 +622,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           transformation: {
             to: (desired) => ({
               propA: 'propA',
@@ -649,6 +662,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           importAndDestroy: {
             requiredParameters: [
               'propA',
@@ -668,6 +682,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'directory' }
           }
@@ -695,6 +710,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string', setting: true },
             propB: { type: 'number' }
@@ -737,6 +753,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           importAndDestroy: {
             requiredParameters: ['propA'],
             refreshKeys: ['propB', 'propA'],
@@ -754,6 +771,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string', isEqual: 'version' }
           }
@@ -780,6 +798,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: { type: 'object' }
           }
@@ -822,6 +841,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: { type: 'object' }
           }
@@ -863,6 +883,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: {
               type: 'array',
@@ -968,6 +989,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: { type: 'stateful', definition: sp }
           }
@@ -1007,6 +1029,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'version' }
           }
@@ -1036,6 +1059,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'directory' }
           }
@@ -1065,6 +1089,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'directory' }
           },
@@ -1101,6 +1126,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'directory' }
           },
@@ -1127,6 +1153,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'directory' }
           },
