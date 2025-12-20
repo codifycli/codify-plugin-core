@@ -80,13 +80,15 @@ describe('Resource tests', () => {
       name: 'propA',
       previousValue: 'propABefore',
       newValue: 'propA',
-      operation: 'modify'
+      operation: 'modify',
+      isSensitive: false,
     })
     expect(result.changeSet.parameterChanges[1]).to.deep.eq({
       name: 'propB',
       previousValue: 10,
       newValue: 10,
-      operation: 'noop'
+      operation: 'noop',
+      isSensitive: false,
     })
   })
 

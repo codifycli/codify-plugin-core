@@ -59,14 +59,28 @@ export class Plugin {
 
     return {
       resourceDefinitions: [...this.resourceControllers.values()]
-        .map((r) => ({
-          dependencies: r.dependencies,
-          type: r.typeId,
-        }))
+        .map((r) => {
+          const sensitiveParameters = Object.entries(r.settings.parameterSettings ?? {})
+            .filter(([, v]) => v?.isSensitive)
+            .map(([k]) => k);
+
+          // Here we add '*' if the resource is sensitive but no sensitive parameters are found. This works because the import
+          // sensitivity check only checks for the existance of a sensitive parameter whereas the parameter blocking one blocks
+          // on a specific sensitive parameter.
+          if (r.settings.isSensitive && sensitiveParameters.length === 0) {
+            sensitiveParameters.push('*');
+          }
+
+          return {
+            dependencies: r.dependencies,
+            type: r.typeId,
+            sensitiveParameters,
+          }
+        })
     }
   }
 
-  async getResourceInfo(data: GetResourceInfoRequestData): Promise<GetResourceInfoResponseData> {
+  getResourceInfo(data: GetResourceInfoRequestData): GetResourceInfoResponseData {
     if (!this.resourceControllers.has(data.type)) {
       throw new Error(`Cannot get info for resource ${data.type}, resource doesn't exist`);
     }
@@ -84,6 +98,17 @@ export class Plugin {
     const allowMultiple = resource.settings.allowMultiple !== undefined
       && resource.settings.allowMultiple !== false;
 
+    // Here we add '*' if the resource is sensitive but no sensitive parameters are found. This works because the import
+    // sensitivity check only checks for the existance of a sensitive parameter whereas the parameter blocking one blocks
+    // on a specific sensitive parameter.
+    const sensitiveParameters = Object.entries(resource.settings.parameterSettings ?? {})
+      .filter(([, v]) => v?.isSensitive)
+      .map(([k]) => k);
+
+    if (resource.settings.isSensitive && sensitiveParameters.length === 0) {
+      sensitiveParameters.push('*');
+    }
+
     return {
       plugin: this.name,
       type: data.type,
@@ -96,6 +121,7 @@ export class Plugin {
       import: {
         requiredParameters: requiredPropertyNames,
       },
+      sensitiveParameters,
       allowMultiple
     }
   }

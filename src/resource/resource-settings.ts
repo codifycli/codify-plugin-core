@@ -28,6 +28,12 @@ export interface ResourceSettings<T extends StringIndexedObject> {
   schema?: Partial<JSONSchemaType<T | any>>;
 
   /**
+   * Mark the resource as sensitive. Defaults to false. This prevents the resource from automatically being imported by init and import.
+   * This differs from the parameter level sensitivity which also prevents the parameter value from being displayed in the plan.
+   */
+  isSensitive?: boolean;
+
+  /**
    * Allow multiple of the same resource to unique. Set truthy if
    * multiples are allowed, for example for applications, there can be multiple copy of the same application installed
    * on the system. Or there can be multiple git repos. Defaults to false.
@@ -163,7 +169,7 @@ export interface ResourceSettings<T extends StringIndexedObject> {
      * @param input
      * @param context
      */
-    refreshMapper?: (input: Partial<T>, context: RefreshContext<T>) => Partial<T>
+    refreshMapper?: (input: Partial<T>, context: RefreshContext<T>) => Partial<T>;
   }
 }
 
@@ -206,6 +212,13 @@ export interface DefaultParameterSetting {
    * is mainly used to determine the equality method when performing diffing.
    */
   type?: ParameterSettingType;
+
+  /**
+   * Mark the field as sensitive. Defaults to false. This has two side effects:
+   * 1. When displaying this field in the plan, it will be replaced with asterisks
+   * 2. When importing, resources with sensitive fields will be skipped unless the user explicitly allows it.
+   */
+  isSensitive?: boolean;
 
   /**
    * Default value for the parameter. If a value is not provided in the config, then this value will be used.

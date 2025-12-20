@@ -118,7 +118,7 @@ export class Plan<T extends StringIndexedObject> {
     if (!filteredCurrentParameters && desired) {
       return new Plan(
         uuidV4(),
-        ChangeSet.create(desired),
+        ChangeSet.create(desired, settings),
         core,
         isStateful,
       )
@@ -130,7 +130,7 @@ export class Plan<T extends StringIndexedObject> {
       if (!settings.canDestroy) {
         return new Plan(
           uuidV4(),
-          ChangeSet.noop(filteredCurrentParameters),
+          ChangeSet.noop(filteredCurrentParameters, settings),
           core,
           isStateful,
         )
@@ -138,7 +138,7 @@ export class Plan<T extends StringIndexedObject> {
 
       return new Plan(
         uuidV4(),
-        ChangeSet.destroy(filteredCurrentParameters),
+        ChangeSet.destroy(filteredCurrentParameters, settings),
         core,
         isStateful,
       )
@@ -171,7 +171,10 @@ export class Plan<T extends StringIndexedObject> {
       uuidV4(),
       new ChangeSet<T>(
         data.operation,
-        data.parameters
+        data.parameters.map((p) => ({
+          ...p,
+          isSensitive: p.isSensitive ?? false,
+        })),
       ),
       {
         type: data.resourceType,
