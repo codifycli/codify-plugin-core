@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addVariablesToPath, resolvePathWithVariables, splitUserConfig } from './utils.js';
+import { addVariablesToPath, resolvePathWithVariables, splitUserConfig } from './internal-utils.js';
 import os from 'node:os';
 
 describe('Utils tests', () => {

@@ -12,7 +12,7 @@ export * from './resource/parsed-resource-settings.js';
 export * from './resource/resource.js'
 export * from './resource/resource-settings.js'
 export * from './stateful-parameter/stateful-parameter.js'
-export * from './utils/utils.js'
+export * from './utils/index.js'
 
 export async function runPlugin(plugin: Plugin) {
   const messageHandler = new MessageHandler(plugin);

@@ -24,7 +24,7 @@ import { getPty } from '../pty/index.js';
 import { Resource } from '../resource/resource.js';
 import { ResourceController } from '../resource/resource-controller.js';
 import { ptyLocalStorage } from '../utils/pty-local-storage.js';
-import { VerbosityLevel } from '../utils/utils.js';
+import { VerbosityLevel } from '../utils/internal-utils.js';
 
 export class Plugin {
   planStorage: Map<string, Plan<any>>;

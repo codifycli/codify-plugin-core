@@ -1,6 +1,6 @@
 {
   "name": "codify-plugin-lib",
-  "version": "1.0.180",
+  "version": "1.0.181",
   "description": "Library plugin library",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -10,42 +10,47 @@
     "posttest": "tsc",
     "prepublishOnly": "tsc"
   },
+  "bin": {
+    "codify-deploy": "./dist/bin/deploy-plugin.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
+    "@npmcli/promise-spawn": "^7.0.1",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
+    "clean-deep": "^3.4.0",
     "codify-schemas": "1.0.83",
-    "@npmcli/promise-spawn": "^7.0.1",
-    "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0-beta.5",
-    "uuid": "^10.0.0",
     "lodash.isequal": "^4.5.0",
     "nanoid": "^5.0.9",
     "strip-ansi": "^7.1.0",
-    "clean-deep": "^3.4.0"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "^11.7.2",
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^3",
-    "@types/npmcli__promise-spawn": "^6.0.3",
+    "@types/lodash.isequal": "^4.5.8",
     "@types/node": "^20",
+    "@types/npmcli__promise-spawn": "^6.0.3",
     "@types/semver": "^7.5.4",
     "@types/sinon": "^17.0.3",
     "@types/uuid": "^10.0.0",
-    "@types/lodash.isequal": "^4.5.8",
     "chai-as-promised": "^7.1.1",
-    "vitest": "^3.0.5",
-    "vitest-mock-extended": "^1.3.1",
-    "sinon": "^17.0.1",
     "eslint": "^8.51.0",
     "eslint-config-oclif": "^5",
     "eslint-config-oclif-typescript": "^3",
+    "eslint-config-prettier": "^9.0.0",
+    "merge-json-schemas": "^1.0.0",
     "shx": "^0.3.3",
+    "sinon": "^17.0.1",
     "ts-node": "^10.9.1",
     "tsc-watch": "^6.0.4",
     "typescript": "^5",
-    "eslint-config-prettier": "^9.0.0"
+    "vitest": "^3.0.5",
+    "vitest-mock-extended": "^1.3.1"
   },
   "engines": {
     "node": ">=18.0.0"

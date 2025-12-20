@@ -4,7 +4,13 @@ import isObjectsEqual from 'lodash.isequal'
 import path from 'node:path';
 
 import { ArrayStatefulParameter, StatefulParameter } from '../stateful-parameter/stateful-parameter.js';
-import { addVariablesToPath, areArraysEqual, resolvePathWithVariables, tildify, untildify } from '../utils/utils.js';
+import {
+  addVariablesToPath,
+  areArraysEqual,
+  resolvePathWithVariables,
+  tildify,
+  untildify
+} from '../utils/internal-utils.js';
 import { RefreshContext } from './resource.js';
 
 export interface InputTransformation {
@@ -350,8 +356,9 @@ const ParameterEqualsDefaults: Partial<Record<ParameterSettingType, (a: unknown,
       transformedB = path.resolve(transformedB)
     }
 
-    const notCaseSensitive = process.platform === 'darwin';
-    if (notCaseSensitive) {
+    // macOS has case-insensitive filesystem by default, Linux is case-sensitive
+    const isCaseSensitive = process.platform === 'linux';
+    if (!isCaseSensitive) {
       transformedA = transformedA.toLowerCase();
       transformedB = transformedB.toLowerCase();
     }

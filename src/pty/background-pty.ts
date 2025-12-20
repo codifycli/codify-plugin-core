@@ -6,7 +6,8 @@ import * as fs from 'node:fs/promises';
 import stripAnsi from 'strip-ansi';
 
 import { debugLog } from '../utils/debug.js';
-import { VerbosityLevel } from '../utils/utils.js';
+import { Shell, Utils } from '../utils/index.js';
+import { VerbosityLevel } from '../utils/internal-utils.js';
 import { IPty, SpawnError, SpawnOptions, SpawnResult } from './index.js';
 import { PromiseQueue } from './promise-queue.js';
 
@@ -19,7 +20,7 @@ EventEmitter.defaultMaxListeners = 1000;
  * without a tty (or even a stdin) attached so interactive commands will not work.
  */
 export class BackgroundPty implements IPty {
-  private basePty = pty.spawn('zsh', ['-i'], {
+  private basePty = pty.spawn(this.getDefaultShell(), ['-i'], {
     env: process.env, name: nanoid(6),
     handleFlowControl: true
   });
@@ -127,7 +128,19 @@ export class BackgroundPty implements IPty {
       let outputBuffer = '';
 
       return new Promise(resolve => {
-        this.basePty.write('setopt hist_ignore_space;\n');
+        // zsh-specific commands
+        switch (Utils.getShell()) {
+          case Shell.ZSH: {
+            this.basePty.write('setopt HIST_NO_STORE;\n');
+            break;
+          }
+
+          default: {
+            this.basePty.write('export HISTIGNORE=\'history*\';\n');
+            break;
+          }
+        }
+
         this.basePty.write(' unset PS1;\n');
         this.basePty.write(' unset PS0;\n')
         this.basePty.write(' echo setup complete\\"\n')
@@ -141,5 +154,9 @@ export class BackgroundPty implements IPty {
         })
       })
     })
+  }
+
+  private getDefaultShell(): string {
+    return process.env.SHELL!;
   }
 }
