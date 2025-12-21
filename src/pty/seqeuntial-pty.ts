@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 import stripAnsi from 'strip-ansi';
 
 import { Shell, Utils } from '../utils/index.js';
-import { VerbosityLevel } from '../utils/internal-utils.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { IPty, SpawnError, SpawnOptions, SpawnResult, SpawnStatus } from './index.js';
 
 EventEmitter.defaultMaxListeners = 1000;
@@ -46,7 +46,7 @@ export class SequentialPty implements IPty {
       const initialCols = process.stdout.columns ?? 80;
       const initialRows = process.stdout.rows ?? 24;
 
-      const args = (options?.interactive ?? true) ? ['-i', '-c', `"${cmd}"`] : ['-c', `"${cmd}"`]
+      const args = (options?.interactive ?? false) ? ['-i', '-c', cmd] : ['-c', cmd]
 
       // Run the command in a pty for interactivity
       const mPty = pty.spawn(this.getDefaultShell(), args, {

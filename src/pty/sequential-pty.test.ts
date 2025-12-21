@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SequentialPty } from './seqeuntial-pty.js';
-import { VerbosityLevel } from '../utils/internal-utils.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 
 describe('SequentialPty tests', () => {
   it('Can launch a simple command', async () => {
@@ -52,7 +52,7 @@ describe('SequentialPty tests', () => {
   it('It can launch a command in interactive mode', async () => {
     const pty = new SequentialPty();
 
-    const resultSuccess = await pty.spawnSafe('ls', { interactive: false });
+    const resultSuccess = await pty.spawnSafe('ls', { interactive: true });
     expect(resultSuccess).toMatchObject({
       status: 'success',
       exitCode: 0,

@@ -7,7 +7,7 @@ import stripAnsi from 'strip-ansi';
 
 import { debugLog } from '../utils/debug.js';
 import { Shell, Utils } from '../utils/index.js';
-import { VerbosityLevel } from '../utils/internal-utils.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { IPty, SpawnError, SpawnOptions, SpawnResult } from './index.js';
 import { PromiseQueue } from './promise-queue.js';
 

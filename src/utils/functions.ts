@@ -2,22 +2,6 @@ import { ResourceConfig, StringIndexedObject } from 'codify-schemas';
 import os from 'node:os';
 import path from 'node:path';
 
-export const VerbosityLevel = new class {
-  level = 0;
-
-  get() {
-    return this.level;
-  }
-
-  set(level: number) {
-    this.level = level;
-  }
-}
-
-export function isDebug(): boolean {
-  return process.env.DEBUG != null && process.env.DEBUG.includes('codify'); // TODO: replace with debug library
-}
-
 export function splitUserConfig<T extends StringIndexedObject>(
   config: ResourceConfig & T
 ): { parameters: T; coreParameters: ResourceConfig } {

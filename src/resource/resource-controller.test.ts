@@ -7,7 +7,7 @@ import { CreatePlan, DestroyPlan, ModifyPlan } from '../plan/plan-types.js';
 import { ParameterChange } from '../plan/change-set.js';
 import { ResourceController } from './resource-controller.js';
 import { TestConfig, testPlan, TestResource, TestStatefulParameter } from '../utils/test-utils.test.js';
-import { tildify, untildify } from '../utils/internal-utils.js';
+import { tildify, untildify } from '../utils/functions.js';
 import { ArrayStatefulParameter, StatefulParameter } from '../stateful-parameter/stateful-parameter.js';
 import { Plan } from '../plan/plan.js';
 import os from 'node:os';

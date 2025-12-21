@@ -2,6 +2,10 @@ import { OS } from 'codify-schemas';
 import os from 'node:os';
 import path from 'node:path';
 
+export function isDebug(): boolean {
+  return process.env.DEBUG != null && process.env.DEBUG.includes('codify'); // TODO: replace with debug library
+}
+
 export enum Shell {
   ZSH = 'zsh',
   BASH = 'bash',

@@ -10,7 +10,7 @@ import {
   resolvePathWithVariables,
   tildify,
   untildify
-} from '../utils/internal-utils.js';
+} from '../utils/functions.js';
 import { RefreshContext } from './resource.js';
 
 export interface InputTransformation {
