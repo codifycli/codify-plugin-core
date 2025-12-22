@@ -20,8 +20,10 @@ EventEmitter.defaultMaxListeners = 1000;
  * without a tty (or even a stdin) attached so interactive commands will not work.
  */
 export class BackgroundPty implements IPty {
+  private historyIgnore = Utils.getShell() === Shell.ZSH ? { HISTORY_IGNORE: '*' } : { HISTIGNORE: '*' };
   private basePty = pty.spawn(this.getDefaultShell(), ['-i'], {
-    env: process.env, name: nanoid(6),
+    env: { ...process.env, ...this.historyIgnore },
+    name: nanoid(6),
     handleFlowControl: true
   });
 
@@ -129,17 +131,17 @@ export class BackgroundPty implements IPty {
 
       return new Promise(resolve => {
         // zsh-specific commands
-        switch (Utils.getShell()) {
-          case Shell.ZSH: {
-            this.basePty.write('setopt HIST_NO_STORE;\n');
-            break;
-          }
-
-          default: {
-            this.basePty.write('export HISTIGNORE=\'history*\';\n');
-            break;
-          }
-        }
+        // switch (Utils.getShell()) {
+        //   case Shell.ZSH: {
+        //     this.basePty.write('setopt HIST_NO_STORE;\n');
+        //     break;
+        //   }
+        //
+        //   default: {
+        //     this.basePty.write('export HISTIGNORE=\'history*\';\n');
+        //     break;
+        //   }
+        // }
 
         this.basePty.write(' unset PS1;\n');
         this.basePty.write(' unset PS0;\n')

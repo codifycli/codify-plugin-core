@@ -30,6 +30,7 @@ export interface SpawnOptions {
   cwd?: string;
   env?: Record<string, unknown>,
   interactive?: boolean,
+  requiresRoot?: boolean,
 }
 
 export class SpawnError extends Error {

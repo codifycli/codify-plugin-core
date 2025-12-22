@@ -12,6 +12,7 @@ export * from './resource/parsed-resource-settings.js';
 export * from './resource/resource.js'
 export * from './resource/resource-settings.js'
 export * from './stateful-parameter/stateful-parameter.js'
+export * from './utils/file-utils.js'
 export * from './utils/functions.js'
 export * from './utils/index.js'
 export * from './utils/verbosity-level.js'

@@ -1,4 +1,7 @@
 import pty from '@homebridge/node-pty-prebuilt-multiarch';
+import { Ajv } from 'ajv';
+import { CommandRequestResponseData, CommandRequestResponseDataSchema, IpcMessageV2, MessageCmd } from 'codify-schemas';
+import { nanoid } from 'nanoid';
 import { EventEmitter } from 'node:events';
 import stripAnsi from 'strip-ansi';
 
@@ -7,6 +10,11 @@ import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { IPty, SpawnError, SpawnOptions, SpawnResult, SpawnStatus } from './index.js';
 
 EventEmitter.defaultMaxListeners = 1000;
+
+const ajv = new Ajv({
+  strict: true,
+});
+const validateSudoRequestResponse = ajv.compile(CommandRequestResponseDataSchema);
 
 /**
  * The background pty is a specialized pty designed for speed. It can launch multiple tasks
@@ -26,11 +34,15 @@ export class SequentialPty implements IPty {
   }
 
   async spawnSafe(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+    // If sudo is required, we must delegate to the main codify process.
+    if (options?.interactive || options?.requiresRoot) {
+      return this.externalSpawn(cmd, options);
+    }
+
     console.log(`Running command: ${cmd}` + (options?.cwd ? `(${options?.cwd})` : ''))
 
     return new Promise((resolve) => {
       const output: string[] = [];
-
       const historyIgnore = Utils.getShell() === Shell.ZSH ? { HISTORY_IGNORE: '*' } : { HISTIGNORE: '*' };
 
       // If TERM_PROGRAM=Apple_Terminal is set then ANSI escape characters may be included
@@ -39,17 +51,16 @@ export class SequentialPty implements IPty {
         ...process.env, ...options?.env,
         TERM_PROGRAM: 'codify',
         COMMAND_MODE: 'unix2003',
-        COLORTERM: 'truecolor', ...historyIgnore
+        COLORTERM: 'truecolor',
+        ...historyIgnore
       }
 
       // Initial terminal dimensions
       const initialCols = process.stdout.columns ?? 80;
       const initialRows = process.stdout.rows ?? 24;
 
-      const args = (options?.interactive ?? false) ? ['-i', '-c', cmd] : ['-c', cmd]
-
       // Run the command in a pty for interactivity
-      const mPty = pty.spawn(this.getDefaultShell(), args, {
+      const mPty = pty.spawn(this.getDefaultShell(), ['-c', cmd], {
         ...options,
         cols: initialCols,
         rows: initialRows,
@@ -64,10 +75,6 @@ export class SequentialPty implements IPty {
         output.push(data.toString());
       })
 
-      const stdinListener = (data: any) => {
-        mPty.write(data.toString());
-      };
-
       const resizeListener = () => {
         const { columns, rows } = process.stdout;
         mPty.resize(columns, rows);
@@ -75,12 +82,9 @@ export class SequentialPty implements IPty {
 
       // Listen to resize events for the terminal window;
       process.stdout.on('resize', resizeListener);
-      // Listen for user input
-      process.stdin.on('data', stdinListener);
 
       mPty.onExit((result) => {
         process.stdout.off('resize', resizeListener);
-        process.stdin.off('data', stdinListener);
 
         resolve({
           status: result.exitCode === 0 ? SpawnStatus.SUCCESS : SpawnStatus.ERROR,
@@ -97,6 +101,39 @@ export class SequentialPty implements IPty {
       exitCode: 0,
       signal: 0,
     }
+  }
+
+  // For safety reasons, requests that require sudo or are interactive must be run via the main client
+  async externalSpawn(
+    cmd: string,
+    opts: SpawnOptions
+  ): Promise<SpawnResult> {
+    return new Promise((resolve) => {
+      const requestId = nanoid(8);
+
+      const listener = (data: IpcMessageV2) => {
+        if (data.requestId === requestId) {
+          process.removeListener('message', listener);
+
+          if (!validateSudoRequestResponse(data.data)) {
+            throw new Error(`Invalid response for sudo request: ${JSON.stringify(validateSudoRequestResponse.errors, null, 2)}`);
+          }
+
+          resolve(data.data as unknown as CommandRequestResponseData);
+        }
+      }
+
+      process.on('message', listener);
+
+      process.send!(<IpcMessageV2>{
+        cmd: MessageCmd.COMMAND_REQUEST,
+        data: {
+          command: cmd,
+          options: opts ?? {},
+        },
+        requestId
+      })
+    });
   }
 
   private getDefaultShell(): string {
