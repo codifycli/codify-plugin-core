@@ -34,8 +34,12 @@ export class SequentialPty implements IPty {
   }
 
   async spawnSafe(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+    if (cmd.includes('sudo')) {
+      throw new Error('Do not directly use sudo. Use the option { requiresRoot: true } instead')
+    }
+
     // If sudo is required, we must delegate to the main codify process.
-    if (options?.interactive || options?.requiresRoot) {
+    if (options?.stdin || options?.requiresRoot) {
       return this.externalSpawn(cmd, options);
     }
 
@@ -59,8 +63,10 @@ export class SequentialPty implements IPty {
       const initialCols = process.stdout.columns ?? 80;
       const initialRows = process.stdout.rows ?? 24;
 
+      const args = options?.interactive ? ['-i', '-c', cmd] : ['-c', cmd]
+
       // Run the command in a pty for interactivity
-      const mPty = pty.spawn(this.getDefaultShell(), ['-c', cmd], {
+      const mPty = pty.spawn(this.getDefaultShell(), args, {
         ...options,
         cols: initialCols,
         rows: initialRows,

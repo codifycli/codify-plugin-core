@@ -28,9 +28,10 @@ export enum SpawnStatus {
  */
 export interface SpawnOptions {
   cwd?: string;
-  env?: Record<string, unknown>,
-  interactive?: boolean,
-  requiresRoot?: boolean,
+  env?: Record<string, unknown>;
+  interactive?: boolean;
+  requiresRoot?: boolean;
+  stdin?: boolean;
 }
 
 export class SpawnError extends Error {
