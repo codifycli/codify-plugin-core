@@ -51,6 +51,21 @@ describe('SequentialPty tests', () => {
     })
   });
 
+
+  it('Can use multi-line commands', async () => {
+    const pty = new SequentialPty();
+
+    const resultSuccess = await pty.spawnSafe([
+      'pwd',
+      '&& ls',
+    ], { cwd: '/tmp' });
+    expect(resultSuccess).toMatchObject({
+      status: 'success',
+      exitCode: 0,
+    })
+  });
+
+
   it('It can launch a command in interactive mode', async () => {
     const originalSend = process.send;
     process.send = (req: IpcMessageV2) => {

@@ -50,9 +50,9 @@ export class SpawnError extends Error {
 }
 
 export interface IPty {
-  spawn(cmd: string, options?: SpawnOptions): Promise<SpawnResult>
+  spawn(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult>
 
-  spawnSafe(cmd: string, options?: SpawnOptions): Promise<SpawnResult>
+  spawnSafe(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult>
 
   kill(): Promise<{ exitCode: number, signal?: number | undefined }>
 }

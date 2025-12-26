@@ -23,17 +23,19 @@ const validateSudoRequestResponse = ajv.compile(CommandRequestResponseDataSchema
  * without a tty (or even a stdin) attached so interactive commands will not work.
  */
 export class SequentialPty implements IPty {
-  async spawn(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+  async spawn(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult> {
     const spawnResult = await this.spawnSafe(cmd, options);
 
     if (spawnResult.status !== 'success') {
-      throw new SpawnError(cmd, spawnResult.exitCode, spawnResult.data);
+      throw new SpawnError(Array.isArray(cmd) ? cmd.join('\n') : cmd, spawnResult.exitCode, spawnResult.data);
     }
 
     return spawnResult;
   }
 
-  async spawnSafe(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+  async spawnSafe(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult> {
+    cmd = Array.isArray(cmd) ? cmd.join(' ') : cmd;
+
     if (cmd.includes('sudo')) {
       throw new Error('Do not directly use sudo. Use the option { requiresRoot: true } instead')
     }
@@ -43,7 +45,7 @@ export class SequentialPty implements IPty {
       return this.externalSpawn(cmd, options);
     }
 
-    console.log(`Running command: ${cmd}` + (options?.cwd ? `(${options?.cwd})` : ''))
+    console.log(`Running command: ${Array.isArray(cmd) ? cmd.join('\\\n') : cmd}` + (options?.cwd ? `(${options?.cwd})` : ''))
 
     return new Promise((resolve) => {
       const output: string[] = [];

@@ -36,7 +36,7 @@ export function tildify(pathWithTilde: string) {
 }
 
 export function resolvePathWithVariables(pathWithVariables: string) {
-  return pathWithVariables.replaceAll(/\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/ig, (_, a, b) => process.env[a || b])
+  return pathWithVariables.replace(/\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/ig, (_, a, b) => process.env[a || b]!)
 }
 
 export function addVariablesToPath(pathWithoutVariables: string) {

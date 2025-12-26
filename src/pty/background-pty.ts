@@ -33,17 +33,19 @@ export class BackgroundPty implements IPty {
     this.initialize();
   }
 
-  async spawn(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+  async spawn(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult> {
     const spawnResult = await this.spawnSafe(cmd, options);
 
     if (spawnResult.status !== 'success') {
-      throw new SpawnError(cmd, spawnResult.exitCode, spawnResult.data);
+      throw new SpawnError(Array.isArray(cmd) ? cmd.join(' ') : cmd, spawnResult.exitCode, spawnResult.data);
     }
 
     return spawnResult;
   }
 
-  async spawnSafe(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+  async spawnSafe(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult> {
+    cmd = Array.isArray(cmd) ? cmd.join('\\\n') : cmd;
+
     // cid is command id
     const cid = nanoid(10);
     debugLog(cid);
@@ -104,7 +106,7 @@ export class BackgroundPty implements IPty {
           }
         });
 
-        console.log(`Running command ${cmd}${options?.cwd ? ` (cwd: ${options.cwd})` : ''}`)
+        console.log(`Running command: ${cmd}${options?.cwd ? ` (cwd: ${options.cwd})` : ''}`)
         this.basePty.write(`${command}\r`);
 
       }));
@@ -130,19 +132,6 @@ export class BackgroundPty implements IPty {
       let outputBuffer = '';
 
       return new Promise(resolve => {
-        // zsh-specific commands
-        // switch (Utils.getShell()) {
-        //   case Shell.ZSH: {
-        //     this.basePty.write('setopt HIST_NO_STORE;\n');
-        //     break;
-        //   }
-        //
-        //   default: {
-        //     this.basePty.write('export HISTIGNORE=\'history*\';\n');
-        //     break;
-        //   }
-        // }
-
         this.basePty.write(' unset PS1;\n');
         this.basePty.write(' unset PS0;\n')
         this.basePty.write(' echo setup complete\\"\n')
