@@ -2,6 +2,8 @@ import { OS } from 'codify-schemas';
 import os from 'node:os';
 import path from 'node:path';
 
+import { getPty, SpawnStatus } from '../pty/index.js';
+
 export function isDebug(): boolean {
   return process.env.DEBUG != null && process.env.DEBUG.includes('codify'); // TODO: replace with debug library
 }
@@ -38,6 +40,34 @@ export const Utils = {
 
   isLinux(): boolean {
     return os.platform() === 'linux';
+  },
+
+  async isArmArch(): Promise<boolean> {
+    const $ = getPty();
+    if (!Utils.isMacOS()) {
+      // On Linux, check uname -m
+      const query = await $.spawn('uname -m');
+      return query.data.trim() === 'aarch64' || query.data.trim() === 'arm64';
+    }
+
+    const query = await $.spawn('sysctl -n machdep.cpu.brand_string');
+    return /M(\d)/.test(query.data);
+  },
+
+  async isHomebrewInstalled(): Promise<boolean> {
+    const $ = getPty();
+    const query = await $.spawnSafe('which brew', { interactive: true });
+    return query.status === SpawnStatus.SUCCESS;
+  },
+
+  async isRosetta2Installed(): Promise<boolean> {
+    if (!Utils.isMacOS()) {
+      return false;
+    }
+
+    const $ = getPty();
+    const query = await $.spawnSafe('arch -x86_64 /usr/bin/true 2> /dev/null', { interactive: true });
+    return query.status === SpawnStatus.SUCCESS;
   },
 
   getShell(): Shell | undefined {
@@ -137,6 +167,13 @@ export const Utils = {
       path.join(homeDir, '.bash_profile'),
       path.join(homeDir, '.profile'),
     ];
+  },
+
+  async isDirectoryOnPath(directory: string): Promise<boolean> {
+    const $ = getPty();
+    const { data: pathQuery } = await $.spawn('echo $PATH', { interactive: true });
+    const lines = pathQuery.split(':');
+    return lines.includes(directory);
   },
 };
 

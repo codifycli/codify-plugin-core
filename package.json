@@ -1,6 +1,6 @@
 {
   "name": "codify-plugin-lib",
-  "version": "1.0.182-beta10",
+  "version": "1.0.182-beta26",
   "description": "Library plugin library",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -22,7 +22,7 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "clean-deep": "^3.4.0",
-    "codify-schemas": "1.0.86-beta5",
+    "codify-schemas": "1.0.86-beta7",
     "lodash.isequal": "^4.5.0",
     "nanoid": "^5.0.9",
     "strip-ansi": "^7.1.0",

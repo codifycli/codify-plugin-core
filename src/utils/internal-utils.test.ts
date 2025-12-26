@@ -8,6 +8,7 @@ describe('Utils tests', () => {
       type: 'type',
       name: 'name',
       dependsOn: ['a', 'b', 'c'],
+      os: ['linux'],
       propA: 'propA',
       propB: 'propB',
       propC: 'propC',
