@@ -89,7 +89,7 @@ export class Plugin {
 
     const resource = this.resourceControllers.get(data.type)!;
 
-    const schema = resource.settings.schema as JSONSchemaType<any> | undefined;
+    const schema = resource.parsedSettings.schema as JSONSchemaType<any> | undefined;
     const requiredPropertyNames = (
       resource.settings.importAndDestroy?.requiredParameters
       ?? (typeof resource.settings.allowMultiple === 'object' ? resource.settings.allowMultiple.identifyingParameters : null)

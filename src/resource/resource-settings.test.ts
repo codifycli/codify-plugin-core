@@ -13,6 +13,7 @@ import { ArrayParameterSetting, ParameterSetting, ResourceSettings } from './res
 import { ResourceController } from './resource-controller.js';
 import os from 'node:os';
 import path from 'node:path';
+import { z } from 'zod';
 
 describe('Resource parameter tests', () => {
   it('Generates a resource plan that includes stateful parameters (create)', async () => {
@@ -1174,4 +1175,39 @@ describe('Resource parameter tests', () => {
     expect(from2).to.eq('$HOME/abc/def')
 
   })
+
+  it('Can match directories 2', async () => {
+
+    const schema = z.object({
+      propA: z.string(),
+      propB: z.number(),
+    });
+
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<z.infer<typeof schema>> {
+        return {
+          id: 'resourceType',
+          schema,
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            propA: { type: 'directory' }
+          },
+        }
+      }
+    };
+
+    const controller = new ResourceController(resource);
+    const transformations = controller.parsedSettings.inputTransformations.propA;
+
+    const to = transformations!.to('$HOME/abc/def')
+    expect(to).to.eq(os.homedir() + '/abc/def')
+
+    const from = transformations!.from(os.homedir() + '/abc/def')
+    expect(from).to.eq('~/abc/def')
+
+    const from2 = transformations!.from(os.homedir() + '/abc/def', '$HOME/abc/def')
+    expect(from2).to.eq('$HOME/abc/def')
+
+  })
+
 })

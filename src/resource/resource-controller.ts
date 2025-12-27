@@ -36,18 +36,17 @@ export class ResourceController<T extends StringIndexedObject> {
 
     this.typeId = this.settings.id;
     this.dependencies = this.settings.dependencies ?? [];
+    this.parsedSettings = new ParsedResourceSettings<T>(this.settings);
 
-    if (this.settings.schema) {
+    if (this.parsedSettings.schema) {
       this.ajv = new Ajv({
         allErrors: true,
         strict: true,
         strictRequired: false,
         allowUnionTypes: true
       })
-      this.schemaValidator = this.ajv.compile(this.settings.schema);
+      this.schemaValidator = this.ajv.compile(this.parsedSettings.schema);
     }
-
-    this.parsedSettings = new ParsedResourceSettings<T>(this.settings);
   }
 
   async initialize(): Promise<void> {
@@ -526,8 +525,8 @@ ${JSON.stringify(refresh, null, 2)}
   }
 
   private getAllParameterKeys(): string[] {
-    return this.settings.schema
-      ? Object.keys((this.settings.schema as any)?.properties)
+    return this.parsedSettings.schema
+      ? Object.keys((this.parsedSettings.schema as any)?.properties)
       : Object.keys(this.parsedSettings.parameterSettings);
   }
 

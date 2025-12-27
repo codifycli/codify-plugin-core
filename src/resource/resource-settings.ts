@@ -2,6 +2,7 @@ import { JSONSchemaType } from 'ajv';
 import { OS, StringIndexedObject } from 'codify-schemas';
 import isObjectsEqual from 'lodash.isequal'
 import path from 'node:path';
+import { ZodObject } from 'zod';
 
 import { ArrayStatefulParameter, StatefulParameter } from '../stateful-parameter/stateful-parameter.js';
 import {
@@ -11,6 +12,7 @@ import {
   tildify,
   untildify
 } from '../utils/functions.js';
+import { ParsedResourceSettings } from './parsed-resource-settings.js';
 import { RefreshContext } from './resource.js';
 
 export interface InputTransformation {
@@ -36,13 +38,18 @@ export interface ResourceSettings<T extends StringIndexedObject> {
   /**
    * Schema to validate user configs with. Must be in the format JSON Schema draft07
    */
-  schema?: Partial<JSONSchemaType<T | any>>;
+  schema?: Partial<JSONSchemaType<T | any>> | ZodObject;
 
   /**
    * Mark the resource as sensitive. Defaults to false. This prevents the resource from automatically being imported by init and import.
    * This differs from the parameter level sensitivity which also prevents the parameter value from being displayed in the plan.
    */
   isSensitive?: boolean;
+
+  /**
+   * An optional description of the resource. This does not affect the behavior of the resource.
+   */
+  description?: string;
 
   /**
    * Allow multiple of the same resource to unique. Set truthy if
@@ -349,7 +356,7 @@ export interface StatefulParameterSetting extends DefaultParameterSetting {
 
 const ParameterEqualsDefaults: Partial<Record<ParameterSettingType, (a: unknown, b: unknown) => boolean>> = {
   'boolean': (a: unknown, b: unknown) => Boolean(a) === Boolean(b),
-  'directory': (a: unknown, b: unknown) => {
+  'directory'(a: unknown, b: unknown) {
     let transformedA = resolvePathWithVariables(untildify(String(a)))
     let transformedB = resolvePathWithVariables(untildify(String(b)))
 
@@ -430,7 +437,7 @@ export function resolveFnFromEqualsFnOrString(
 const ParameterTransformationDefaults: Partial<Record<ParameterSettingType, InputTransformation>> = {
   'directory': {
     to: (a: unknown) => resolvePathWithVariables((untildify(String(a)))),
-    from: (a: unknown, original) => {
+    from(a: unknown, original) {
       if (ParameterEqualsDefaults.directory!(a, original)) {
         return original;
       }
@@ -489,7 +496,7 @@ export function resolveParameterTransformFn(
 }
 
 export function resolveMatcher<T extends StringIndexedObject>(
-  settings: ResourceSettings<T>
+  settings: ParsedResourceSettings<T>
 ): (desired: Partial<T>, current: Partial<T>) => boolean {
   return typeof settings.allowMultiple === 'boolean' || !settings.allowMultiple?.matcher
     ? ((desired: Partial<T>, current: Partial<T>) => {

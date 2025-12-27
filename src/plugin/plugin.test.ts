@@ -7,6 +7,7 @@ import { spy } from 'sinon';
 import { ResourceSettings } from '../resource/resource-settings.js';
 import { TestConfig, TestStatefulParameter } from '../utils/test-utils.test.js';
 import { getPty } from '../pty/index.js';
+import { z } from 'zod';
 
 interface TestConfig extends StringIndexedObject {
   propA: string;
@@ -150,6 +151,36 @@ describe('Plugin tests', () => {
       'additionalProperties': false
     }
 
+
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<TestConfig> {
+        return {
+          id: 'typeId',
+          operatingSystems: [OS.Darwin],
+          schema,
+        }
+      }
+    }
+    const testPlugin = Plugin.create('testPlugin', [resource as any])
+
+    const resourceInfo = await testPlugin.getResourceInfo({ type: 'typeId' })
+    expect(resourceInfo.import).toMatchObject({
+      requiredParameters: [
+        'plugins'
+      ]
+    })
+  })
+
+  it('Can get resource info (zod schema)', async () => {
+    const schema = z
+      .object({
+        plugins: z
+          .array(z.string())
+          .describe(
+            'Asdf plugins to install. See: https://github.com/asdf-community for a full list'
+          )
+      })
+      .strict()
 
     const resource = new class extends TestResource {
       getSettings(): ResourceSettings<TestConfig> {
