@@ -16,6 +16,7 @@ export * from './utils/file-utils.js'
 export * from './utils/functions.js'
 export * from './utils/index.js'
 export * from './utils/verbosity-level.js'
+export * from 'zod/v4';
 
 export async function runPlugin(plugin: Plugin) {
   const messageHandler = new MessageHandler(plugin);
