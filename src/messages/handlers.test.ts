@@ -235,6 +235,29 @@ describe('Message handler tests', () => {
     process.send = undefined;
   })
 
+  it('handles changing the verbosity level', async () => {
+    const resource = new TestResource()
+    const plugin = testPlugin(resource);
+    const handler = new MessageHandler(plugin);
+
+    process.send = (message) => {
+      expect(message).toMatchObject({
+        cmd: 'setVerbosityLevel_Response',
+        status: MessageStatus.SUCCESS,
+      })
+      return true;
+    }
+
+    expect(async () => await handler.onMessage({
+      cmd: 'setVerbosityLevel',
+      data: {
+        verbosityLevel: 2,
+      }
+    })).rejects.to.not.throw;
+
+    process.send = undefined;
+  })
+
   it('Supports ipc message v2 (success)', async () => {
     const resource = new TestResource()
     const plugin = testPlugin(resource);

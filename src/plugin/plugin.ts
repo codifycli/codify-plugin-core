@@ -12,7 +12,7 @@ import {
   PlanRequestData,
   PlanResponseData,
   ResourceConfig,
-  ResourceJson,
+  ResourceJson, SetVerbosityRequestData,
   ValidateRequestData,
   ValidateResponseData
 } from 'codify-schemas';
@@ -255,6 +255,10 @@ export class Plugin {
     if (validationPlan.requiresChanges()) {
       throw new ApplyValidationError(plan);
     }
+  }
+
+  async setVerbosityLevel(data: SetVerbosityRequestData): Promise<void> {
+    VerbosityLevel.set(data.verbosityLevel);
   }
 
   async kill() {

@@ -2,7 +2,7 @@ import { Ajv, SchemaObject, ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
 import {
   ApplyRequestDataSchema,
-  ApplyResponseDataSchema,
+  EmptyResponseDataSchema,
   GetResourceInfoRequestDataSchema,
   GetResourceInfoResponseDataSchema,
   ImportRequestDataSchema,
@@ -19,6 +19,7 @@ import {
   PlanRequestDataSchema,
   PlanResponseDataSchema,
   ResourceSchema,
+  SetVerbosityRequestDataSchema,
   ValidateRequestDataSchema,
   ValidateResponseDataSchema
 } from 'codify-schemas';
@@ -42,6 +43,14 @@ const SupportedRequests: Record<string, { handler: (plugin: Plugin, data: any) =
     requestValidator: GetResourceInfoRequestDataSchema,
     responseValidator: GetResourceInfoResponseDataSchema
   },
+  'setVerbosityLevel': {
+    async handler(plugin: Plugin, data: any) {
+      await plugin.setVerbosityLevel(data)
+      return null;
+    },
+    requestValidator: SetVerbosityRequestDataSchema,
+    responseValidator: EmptyResponseDataSchema,
+  },
   'match': {
     handler: async (plugin: Plugin, data: any) => plugin.match(data),
     requestValidator: MatchRequestDataSchema,
@@ -63,7 +72,7 @@ const SupportedRequests: Record<string, { handler: (plugin: Plugin, data: any) =
       return null;
     },
     requestValidator: ApplyRequestDataSchema,
-    responseValidator: ApplyResponseDataSchema
+    responseValidator: EmptyResponseDataSchema
   },
 }
 
