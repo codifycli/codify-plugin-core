@@ -23,6 +23,7 @@ export class BackgroundPty implements IPty {
   private historyIgnore = Utils.getShell() === Shell.ZSH ? { HISTORY_IGNORE: '*' } : { HISTIGNORE: '*' };
   private basePty = pty.spawn(this.getDefaultShell(), ['-i'], {
     env: { ...process.env, ...this.historyIgnore },
+    cols: 10_000, // Set to a really large value to prevent wrapping
     name: nanoid(6),
     handleFlowControl: true
   });

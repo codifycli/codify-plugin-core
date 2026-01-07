@@ -25,6 +25,9 @@ export enum SpawnStatus {
  *
  * @property {boolean} [interactive] - Indicates whether the spawned process needs
  * to be interactive. Only works within apply (not plan). Defaults to true.
+ *
+ * @property {boolean} [disableWrapping] - Forces the terminal width to 10_000 to disable wrapping.
+ * In applys, this is off by default while it is on during plans.
  */
 export interface SpawnOptions {
   cwd?: string;
@@ -32,6 +35,7 @@ export interface SpawnOptions {
   interactive?: boolean;
   requiresRoot?: boolean;
   stdin?: boolean;
+  disableWrapping?: boolean;
 }
 
 export class SpawnError extends Error {

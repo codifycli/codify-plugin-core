@@ -62,7 +62,8 @@ export class SequentialPty implements IPty {
       }
 
       // Initial terminal dimensions
-      const initialCols = process.stdout.columns ?? 80;
+      // Set to a really large value to prevent wrapping
+      const initialCols = options?.disableWrapping ? 10_000 : process.stdout.columns ?? 80
       const initialRows = process.stdout.rows ?? 24;
 
       const args = options?.interactive ? ['-i', '-c', cmd] : ['-c', cmd]
@@ -85,7 +86,7 @@ export class SequentialPty implements IPty {
 
       const resizeListener = () => {
         const { columns, rows } = process.stdout;
-        mPty.resize(columns, rows);
+        mPty.resize(columns, options?.disableWrapping ? 10_000 : rows);
       }
 
       // Listen to resize events for the terminal window;
