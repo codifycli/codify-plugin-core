@@ -77,6 +77,7 @@ export class Plugin {
             type: r.typeId,
             sensitiveParameters,
             operatingSystems: r.settings.operatingSystems,
+            linuxDistros: r.settings.linuxDistros,
           }
         })
     }
@@ -124,6 +125,7 @@ export class Plugin {
         requiredParameters: requiredPropertyNames,
       },
       operatingSystems: resource.settings.operatingSystems,
+      linuxDistros: resource.settings.linuxDistros,
       sensitiveParameters,
       allowMultiple
     }

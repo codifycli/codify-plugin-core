@@ -1,5 +1,5 @@
 import { JSONSchemaType } from 'ajv';
-import { OS, StringIndexedObject } from 'codify-schemas';
+import { LinuxDistro, OS, StringIndexedObject } from 'codify-schemas';
 import isObjectsEqual from 'lodash.isequal'
 import path from 'node:path';
 import { ZodObject } from 'zod';
@@ -34,6 +34,11 @@ export interface ResourceSettings<T extends StringIndexedObject> {
    * List of supported operating systems
    */
   operatingSystems: Array<OS>;
+
+  /**
+   * List of supported linux distros
+   */
+  linuxDistros?: Array<LinuxDistro>;
 
   /**
    * Schema to validate user configs with. Must be in the format JSON Schema draft07

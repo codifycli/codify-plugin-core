@@ -1,5 +1,5 @@
 import { JSONSchemaType } from 'ajv';
-import { OS, StringIndexedObject } from 'codify-schemas';
+import { LinuxDistro, OS, StringIndexedObject } from 'codify-schemas';
 import { ZodObject, z } from 'zod';
 
 import { StatefulParameterController } from '../stateful-parameter/stateful-parameter-controller.js';
@@ -52,6 +52,8 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
   transformation?: InputTransformation;
 
   operatingSystems!: Array<OS>;
+  linuxDistros?: Array<LinuxDistro>;
+
   isSensitive?: boolean;
 
   private settings: ResourceSettings<T>;
