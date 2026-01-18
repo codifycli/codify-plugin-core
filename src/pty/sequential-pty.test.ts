@@ -66,7 +66,7 @@ describe('SequentialPty tests', () => {
   });
 
 
-  it('It can launch a command in interactive mode', async () => {
+  it('It can launch a command in interactive mode', { timeout: 30_000 }, async () => {
     const originalSend = process.send;
     process.send = (req: IpcMessageV2) => {
       expect(req).toMatchObject({

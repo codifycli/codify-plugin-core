@@ -180,6 +180,52 @@ describe('Plan entity tests', () => {
     expect(plan.changeSet.operation).to.eq(ResourceOperation.NOOP);
   })
 
+  it('Filters array parameters in delete mode (when desired is null)', async () => {
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<any> {
+        return {
+          id: 'type',
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            propZ: { type: 'array', isElementEqual: (a, b) => b.includes(a) }
+          }
+        }
+      }
+
+      async refresh(): Promise<Partial<any> | null> {
+        return {
+          propZ: [
+            '20.15.0',
+            '20.15.1'
+          ]
+        }
+      }
+    }
+
+    const controller = new ResourceController(resource);
+    const plan = await controller.plan(
+      { type: 'type' },
+      null,
+      { propZ: ['20.15.0'], } as any,
+      true
+    )
+
+    console.log(JSON.stringify(plan, null, 2));
+    expect(plan).toMatchObject({
+      id: expect.any(String),
+      changeSet: expect.objectContaining({
+        operation: ResourceOperation.DESTROY,
+        parameterChanges: [
+          expect.objectContaining({ operation: 'remove', name: 'propZ', previousValue: ['20.15.0'], newValue: null }),
+        ],
+      }),
+      coreParameters: expect.objectContaining({
+        type: 'type',
+      }),
+      isStateful: true,
+    })
+  })
+
   it('Doesn\'t filters array parameters if filtering is disabled', async () => {
     const resource = new class extends TestResource {
       getSettings(): ResourceSettings<any> {
