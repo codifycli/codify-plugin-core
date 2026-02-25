@@ -211,14 +211,14 @@ Brew can be installed using Codify:
         await $.spawn('apt-get update', { requiresRoot: true });
         const { status, data } = await $.spawnSafe(`apt-get -y install ${packageName}`, {
           requiresRoot: true,
-          env: { DEBIAN_FRONTEND: 'noninteractive' }
+          env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
         });
 
         if (status === SpawnStatus.ERROR && data.includes('E: dpkg was interrupted, you must manually run \'sudo dpkg --configure -a\' to correct the problem.')) {
           await $.spawn('dpkg --configure -a', { requiresRoot: true });
           await $.spawn(`apt-get -y install ${packageName}`, {
             requiresRoot: true,
-            env: { DEBIAN_FRONTEND: 'noninteractive' }
+            env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
           });
 
           return;
@@ -267,7 +267,7 @@ Brew can be installed using Codify:
       if (isAptInstalled.status === SpawnStatus.SUCCESS) {
         const { status } = await $.spawnSafe(`apt-get autoremove -y --purge ${packageName}`, {
           requiresRoot: true,
-          env: { DEBIAN_FRONTEND: 'noninteractive' }
+          env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
         });
         return status === SpawnStatus.SUCCESS;
       }
