@@ -1,6 +1,6 @@
 {
   "name": "@codifycli/plugin-core",
-  "version": "1.0.0-beta5",
+  "version": "1.0.0-beta6",
   "description": "TypeScript library for building Codify plugins to manage system resources (applications, CLI tools, settings) through infrastructure-as-code",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -33,7 +33,6 @@
     "type": "git",
     "url": "https://github.com/codifycli/codify-plugin-core.git"
   },
-  "homepage": "https://codifycli.com",
   "license": "ISC",
   "dependencies": {
     "@codifycli/schemas": "1.0.0",
