@@ -36,7 +36,6 @@ describe('SequentialPty tests', () => {
     expect(resultFailed).toMatchObject({
       status: 'error',
       exitCode: 1,
-      data: 'sjkdhsakjdhjkash not found' // This might change on different os or shells. Keep for now.
     })
   });
 
