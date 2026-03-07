@@ -1,4 +1,4 @@
-import { ParameterOperation, ResourceOperation, StringIndexedObject } from 'codify-schemas';
+import { ParameterOperation, ResourceOperation, StringIndexedObject } from '@codifycli/schemas';
 
 import { ParsedParameterSetting } from '../resource/parsed-resource-settings.js';
 import { ResourceSettings } from '../resource/resource-settings.js';

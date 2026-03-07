@@ -1,4 +1,4 @@
-import { OS, ResourceConfig, StringIndexedObject } from 'codify-schemas';
+import { OS, ResourceConfig, StringIndexedObject } from '@codifycli/schemas';
 import { ResourceSettings } from '../resource/resource-settings.js';
 import { Plan } from '../plan/plan.js';
 import { Resource } from '../resource/resource.js';

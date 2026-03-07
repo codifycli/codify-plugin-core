@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Plan } from './plan.js';
-import { OS, ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { OS, ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import { TestConfig, TestResource } from '../utils/test-utils.test.js';
 import { ResourceController } from '../resource/resource-controller.js';
 import { ParsedResourceSettings } from '../resource/parsed-resource-settings.js';

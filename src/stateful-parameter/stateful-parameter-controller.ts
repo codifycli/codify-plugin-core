@@ -1,4 +1,4 @@
-import { StringIndexedObject } from 'codify-schemas';
+import { StringIndexedObject } from '@codifycli/schemas';
 
 import { Plan } from '../plan/plan.js';
 import { ParsedArrayParameterSetting, ParsedParameterSetting, } from '../resource/parsed-resource-settings.js';

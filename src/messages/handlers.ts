@@ -1,5 +1,3 @@
-import { Ajv, SchemaObject, ValidateFunction } from 'ajv';
-import addFormats from 'ajv-formats';
 import {
   ApplyRequestDataSchema,
   EmptyResponseDataSchema,
@@ -22,7 +20,9 @@ import {
   SetVerbosityRequestDataSchema,
   ValidateRequestDataSchema,
   ValidateResponseDataSchema
-} from 'codify-schemas';
+} from '@codifycli/schemas';
+import { Ajv, SchemaObject, ValidateFunction } from 'ajv';
+import addFormats from 'ajv-formats';
 
 import { SudoError } from '../errors.js';
 import { Plugin } from '../plugin/plugin.js';

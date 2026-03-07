@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { spy } from 'sinon';
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import {
   TestArrayStatefulParameter,
   TestConfig,

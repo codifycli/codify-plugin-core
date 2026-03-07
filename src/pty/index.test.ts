@@ -3,7 +3,7 @@ import { TestConfig, TestResource } from '../utils/test-utils.test.js';
 import { getPty, IPty } from './index.js';
 import { Plugin } from '../plugin/plugin.js'
 import { CreatePlan } from '../plan/plan-types.js';
-import { OS, ResourceOperation } from 'codify-schemas';
+import { OS, ResourceOperation } from '@codifycli/schemas';
 import { ResourceSettings } from '../resource/resource-settings.js';
 import { SequentialPty } from './seqeuntial-pty.js';
 

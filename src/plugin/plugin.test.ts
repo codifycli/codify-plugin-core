@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Plugin } from './plugin.js';
-import { ApplyRequestData, OS, ParameterOperation, ResourceOperation, StringIndexedObject } from 'codify-schemas';
+import { ApplyRequestData, OS, ParameterOperation, ResourceOperation, StringIndexedObject } from '@codifycli/schemas';
 import { Resource } from '../resource/resource.js';
 import { Plan } from '../plan/plan.js';
 import { spy } from 'sinon';

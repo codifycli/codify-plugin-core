@@ -1,5 +1,5 @@
 import { ChangeSet } from './change-set.js';
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import { describe, expect, it } from 'vitest';
 import { ParsedResourceSettings } from '../resource/parsed-resource-settings.js';
 

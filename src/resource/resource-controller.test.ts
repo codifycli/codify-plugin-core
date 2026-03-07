@@ -1,5 +1,5 @@
 import { Resource } from './resource.js';
-import { OS, ResourceOperation } from 'codify-schemas';
+import { OS, ResourceOperation } from '@codifycli/schemas';
 import { spy } from 'sinon';
 import { describe, expect, it } from 'vitest'
 import { ArrayParameterSetting, ParameterSetting, ResourceSettings } from './resource-settings.js';

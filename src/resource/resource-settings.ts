@@ -1,5 +1,5 @@
+import { LinuxDistro, OS, StringIndexedObject } from '@codifycli/schemas';
 import { JSONSchemaType } from 'ajv';
-import { LinuxDistro, OS, StringIndexedObject } from 'codify-schemas';
 import isObjectsEqual from 'lodash.isequal'
 import path from 'node:path';
 import { ZodObject } from 'zod';

@@ -3,7 +3,7 @@ import { ResourceSettings } from './resource-settings.js';
 import { ParsedResourceSettings } from './parsed-resource-settings.js';
 import { TestConfig } from '../utils/test-utils.test.js';
 import { z } from 'zod';
-import { OS } from 'codify-schemas';
+import { OS } from '@codifycli/schemas';
 
 describe('Resource options parser tests', () => {
   it('Parses default values from options', () => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
+import { IpcMessageSchema, MessageStatus, ResourceSchema } from '@codifycli/schemas';
 import { Ajv } from 'ajv';
-import { IpcMessageSchema, MessageStatus, ResourceSchema } from 'codify-schemas';
 import mergeJsonSchemas from 'merge-json-schemas';
 import { fork } from 'node:child_process';
 import fs from 'node:fs';

@@ -3,7 +3,7 @@ import { Plugin } from '../plugin/plugin.js';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended'
 import { Resource } from '../resource/resource.js';
-import { MessageStatus, ResourceOperation } from 'codify-schemas';
+import { MessageStatus, ResourceOperation } from '@codifycli/schemas';
 import { TestResource } from '../utils/test-utils.test.js';
 
 describe('Message handler tests', () => {

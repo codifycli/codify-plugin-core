@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { SequentialPty } from './seqeuntial-pty.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
-import { MessageStatus, SpawnStatus } from 'codify-schemas/src/types/index.js';
-import { IpcMessageV2, MessageCmd } from 'codify-schemas';
+import { MessageStatus, SpawnStatus } from '@codifycli/schemas/src/types/index.js';
+import { IpcMessageV2, MessageCmd } from '@codifycli/schemas';
 
 describe('SequentialPty tests', () => {
   it('Can launch a simple command', async () => {

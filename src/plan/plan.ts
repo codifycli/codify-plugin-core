@@ -5,7 +5,7 @@ import {
   ResourceConfig,
   ResourceOperation,
   StringIndexedObject,
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 import { v4 as uuidV4 } from 'uuid';
 
 import {

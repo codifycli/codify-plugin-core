@@ -1,5 +1,3 @@
-import { Ajv, ValidateFunction } from 'ajv';
-import cleanDeep from 'clean-deep';
 import {
   ParameterOperation,
   ResourceConfig,
@@ -7,7 +5,9 @@ import {
   ResourceOperation,
   StringIndexedObject,
   ValidateResponseData
-} from 'codify-schemas';
+} from '@codifycli/schemas';
+import { Ajv, ValidateFunction } from 'ajv';
+import cleanDeep from 'clean-deep';
 
 import { ParameterChange } from '../plan/change-set.js';
 import { Plan } from '../plan/plan.js';

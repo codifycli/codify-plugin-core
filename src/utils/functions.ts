@@ -1,4 +1,4 @@
-import { ResourceConfig, StringIndexedObject } from 'codify-schemas';
+import { ResourceConfig, StringIndexedObject } from '@codifycli/schemas';
 import os from 'node:os';
 import path from 'node:path';
 

@@ -1,4 +1,4 @@
-import { StringIndexedObject } from 'codify-schemas';
+import { StringIndexedObject } from '@codifycli/schemas';
 
 import { StatefulParameterController } from '../stateful-parameter/stateful-parameter-controller.js';
 

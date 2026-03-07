@@ -1,6 +1,11 @@
+import {
+  CommandRequestResponseData,
+  CommandRequestResponseDataSchema,
+  IpcMessageV2,
+  MessageCmd
+} from '@codifycli/schemas';
 import pty from '@homebridge/node-pty-prebuilt-multiarch';
 import { Ajv } from 'ajv';
-import { CommandRequestResponseData, CommandRequestResponseDataSchema, IpcMessageV2, MessageCmd } from 'codify-schemas';
 import { nanoid } from 'nanoid';
 import { EventEmitter } from 'node:events';
 import stripAnsi from 'strip-ansi';

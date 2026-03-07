@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Plan } from '../plan/plan.js';
 import { spy } from 'sinon';
-import { OS, ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { OS, ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import {
   TestArrayStatefulParameter,
   TestConfig,

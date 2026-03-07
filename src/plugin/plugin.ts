@@ -1,4 +1,3 @@
-import { JSONSchemaType } from 'ajv';
 import {
   ApplyRequestData,
   GetResourceInfoRequestData,
@@ -15,7 +14,8 @@ import {
   ResourceJson, SetVerbosityRequestData,
   ValidateRequestData,
   ValidateResponseData
-} from 'codify-schemas';
+} from '@codifycli/schemas';
+import { JSONSchemaType } from 'ajv';
 
 import { ApplyValidationError } from '../common/errors.js';
 import { Plan } from '../plan/plan.js';

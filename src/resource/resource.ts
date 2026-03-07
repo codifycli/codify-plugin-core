@@ -1,4 +1,4 @@
-import { StringIndexedObject, } from 'codify-schemas';
+import { StringIndexedObject, } from '@codifycli/schemas';
 
 import { ParameterChange } from '../plan/change-set.js';
 import { CreatePlan, DestroyPlan, ModifyPlan } from '../plan/plan-types.js';
