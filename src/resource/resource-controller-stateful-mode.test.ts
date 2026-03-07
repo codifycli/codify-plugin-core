@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { OS, ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import { TestConfig, TestResource, TestStatefulParameter } from '../utils/test-utils.test.js';
 import { ResourceSettings } from './resource-settings.js';
 import { ResourceController } from './resource-controller.js';
@@ -179,6 +179,7 @@ describe('Resource tests for stateful plans', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: { type: 'stateful', definition: statefulParameter },
           }

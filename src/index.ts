@@ -7,12 +7,18 @@ export * from './plan/change-set.js'
 export * from './plan/plan.js'
 export * from './plan/plan-types.js'
 export * from './plugin/plugin.js'
+export * from './pty/background-pty.js';
 export * from './pty/index.js'
+export * from './pty/seqeuntial-pty.js';
 export * from './resource/parsed-resource-settings.js';
 export * from './resource/resource.js'
 export * from './resource/resource-settings.js'
 export * from './stateful-parameter/stateful-parameter.js'
-export * from './utils/utils.js'
+export * from './utils/file-utils.js'
+export * from './utils/functions.js'
+export * from './utils/index.js'
+export * from './utils/verbosity-level.js'
+export * from 'zod/v4';
 
 export async function runPlugin(plugin: Plugin) {
   const messageHandler = new MessageHandler(plugin);

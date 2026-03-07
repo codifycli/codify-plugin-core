@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addVariablesToPath, resolvePathWithVariables, splitUserConfig } from './utils.js';
+import { addVariablesToPath, resolvePathWithVariables, splitUserConfig } from './functions.js';
 import os from 'node:os';
 
 describe('Utils tests', () => {
@@ -8,6 +8,7 @@ describe('Utils tests', () => {
       type: 'type',
       name: 'name',
       dependsOn: ['a', 'b', 'c'],
+      os: ['linux'],
       propA: 'propA',
       propB: 'propB',
       propC: 'propC',

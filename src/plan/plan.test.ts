@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Plan } from './plan.js';
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { OS, ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import { TestConfig, TestResource } from '../utils/test-utils.test.js';
 import { ResourceController } from '../resource/resource-controller.js';
 import { ParsedResourceSettings } from '../resource/parsed-resource-settings.js';
@@ -152,6 +152,7 @@ describe('Plan entity tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propZ: { type: 'array', isElementEqual: (a, b) => b.includes(a) }
           }
@@ -179,11 +180,58 @@ describe('Plan entity tests', () => {
     expect(plan.changeSet.operation).to.eq(ResourceOperation.NOOP);
   })
 
+  it('Filters array parameters in delete mode (when desired is null)', async () => {
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<any> {
+        return {
+          id: 'type',
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            propZ: { type: 'array', isElementEqual: (a, b) => b.includes(a) }
+          }
+        }
+      }
+
+      async refresh(): Promise<Partial<any> | null> {
+        return {
+          propZ: [
+            '20.15.0',
+            '20.15.1'
+          ]
+        }
+      }
+    }
+
+    const controller = new ResourceController(resource);
+    const plan = await controller.plan(
+      { type: 'type' },
+      null,
+      { propZ: ['20.15.0'], } as any,
+      true
+    )
+
+    console.log(JSON.stringify(plan, null, 2));
+    expect(plan).toMatchObject({
+      id: expect.any(String),
+      changeSet: expect.objectContaining({
+        operation: ResourceOperation.DESTROY,
+        parameterChanges: [
+          expect.objectContaining({ operation: 'remove', name: 'propZ', previousValue: ['20.15.0'], newValue: null }),
+        ],
+      }),
+      coreParameters: expect.objectContaining({
+        type: 'type',
+      }),
+      isStateful: true,
+    })
+  })
+
   it('Doesn\'t filters array parameters if filtering is disabled', async () => {
     const resource = new class extends TestResource {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propZ: {
               type: 'array',
@@ -236,6 +284,7 @@ describe('Plan entity tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string' },
             propB: { type: 'string', canModify: true },
@@ -289,6 +338,7 @@ describe('Plan entity tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string' },
             propB: { type: 'string', canModify: true },
@@ -351,6 +401,7 @@ function createTestResource() {
     getSettings(): ResourceSettings<TestConfig> {
       return {
         id: 'type',
+        operatingSystems: [OS.Darwin],
         parameterSettings: {
           propA: {
             default: 'defaultA'

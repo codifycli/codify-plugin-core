@@ -1,7 +1,7 @@
 import { ptyLocalStorage } from '../utils/pty-local-storage.js';
 
 export interface SpawnResult {
-  status: 'success' | 'error';
+  status: 'error' | 'success';
   exitCode: number;
   data: string;
 }
@@ -11,9 +11,31 @@ export enum SpawnStatus {
   ERROR = 'error',
 }
 
+/**
+ * Represents the configuration options for spawning a child process.
+ *
+ * @interface SpawnOptions
+ *
+ * @property {string} [cwd] - Specifies the working directory of the child process.
+ * If not provided, the current working directory of the parent process is used.
+ *
+ * @property {Record<string, unknown>} [env] - Defines environment key-value pairs
+ * that will be available to the child process. If not specified, the child process
+ * will inherit the environment variables of the parent process.
+ *
+ * @property {boolean} [interactive] - Indicates whether the spawned process needs
+ * to be interactive. Only works within apply (not plan). Defaults to true.
+ *
+ * @property {boolean} [disableWrapping] - Forces the terminal width to 10_000 to disable wrapping.
+ * In applys, this is off by default while it is on during plans.
+ */
 export interface SpawnOptions {
   cwd?: string;
-  env?: Record<string, unknown>,
+  env?: Record<string, unknown>;
+  interactive?: boolean;
+  requiresRoot?: boolean;
+  stdin?: boolean;
+  disableWrapping?: boolean;
 }
 
 export class SpawnError extends Error {
@@ -32,9 +54,9 @@ export class SpawnError extends Error {
 }
 
 export interface IPty {
-  spawn(cmd: string, options?: SpawnOptions): Promise<SpawnResult>
+  spawn(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult>
 
-  spawnSafe(cmd: string, options?: SpawnOptions): Promise<SpawnResult>
+  spawnSafe(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult>
 
   kill(): Promise<{ exitCode: number, signal?: number | undefined }>
 }

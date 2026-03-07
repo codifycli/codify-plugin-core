@@ -3,7 +3,7 @@ import { Plugin } from '../plugin/plugin.js';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended'
 import { Resource } from '../resource/resource.js';
-import { MessageStatus, ResourceOperation } from 'codify-schemas';
+import { MessageStatus, ResourceOperation } from '@codifycli/schemas';
 import { TestResource } from '../utils/test-utils.test.js';
 
 describe('Message handler tests', () => {
@@ -229,6 +229,29 @@ describe('Message handler tests', () => {
           operation: ResourceOperation.DESTROY,
           parameters: []
         }
+      }
+    })).rejects.to.not.throw;
+
+    process.send = undefined;
+  })
+
+  it('handles changing the verbosity level', async () => {
+    const resource = new TestResource()
+    const plugin = testPlugin(resource);
+    const handler = new MessageHandler(plugin);
+
+    process.send = (message) => {
+      expect(message).toMatchObject({
+        cmd: 'setVerbosityLevel_Response',
+        status: MessageStatus.SUCCESS,
+      })
+      return true;
+    }
+
+    expect(async () => await handler.onMessage({
+      cmd: 'setVerbosityLevel',
+      data: {
+        verbosityLevel: 2,
       }
     })).rejects.to.not.throw;
 

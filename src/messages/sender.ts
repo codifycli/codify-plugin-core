@@ -1,5 +1,5 @@
+import { IpcMessageV2, IpcMessageV2Schema, MessageCmd, PressKeyToContinueRequestData } from '@codifycli/schemas';
 import { Ajv } from 'ajv';
-import { IpcMessageV2, IpcMessageV2Schema, MessageCmd, PressKeyToContinueRequestData } from 'codify-schemas';
 import { nanoid } from 'nanoid';
 
 const ajv = new Ajv({

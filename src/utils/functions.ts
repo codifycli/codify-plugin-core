@@ -1,22 +1,6 @@
-import { ResourceConfig, StringIndexedObject } from 'codify-schemas';
+import { ResourceConfig, StringIndexedObject } from '@codifycli/schemas';
 import os from 'node:os';
 import path from 'node:path';
-
-export const VerbosityLevel = new class {
-  level = 0;
-
-  get() {
-    return this.level;
-  }
-
-  set(level: number) {
-    this.level = level;
-  }
-}
-
-export function isDebug(): boolean {
-  return process.env.DEBUG != null && process.env.DEBUG.includes('codify'); // TODO: replace with debug library
-}
 
 export function splitUserConfig<T extends StringIndexedObject>(
   config: ResourceConfig & T
@@ -25,10 +9,11 @@ export function splitUserConfig<T extends StringIndexedObject>(
     type: config.type,
     ...(config.name ? { name: config.name } : {}),
     ...(config.dependsOn ? { dependsOn: config.dependsOn } : {}),
+    ...(config.os ? { os: config.os } : {}),
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { type, name, dependsOn, ...parameters } = config;
+  const { type, name, dependsOn, os, ...parameters } = config;
 
   return {
     parameters: parameters as T,
@@ -51,8 +36,7 @@ export function tildify(pathWithTilde: string) {
 }
 
 export function resolvePathWithVariables(pathWithVariables: string) {
-  // @ts-expect-error Ignore this for now
-  return pathWithVariables.replace(/\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/ig, (_, a, b) => process.env[a || b])
+  return pathWithVariables.replace(/\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/ig, (_, a, b) => process.env[a || b]!)
 }
 
 export function addVariablesToPath(pathWithoutVariables: string) {

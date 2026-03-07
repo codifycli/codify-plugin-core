@@ -5,7 +5,7 @@ import {
   ResourceConfig,
   ResourceOperation,
   StringIndexedObject,
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 import { v4 as uuidV4 } from 'uuid';
 
 import {
@@ -326,15 +326,27 @@ export class Plan<T extends StringIndexedObject> {
 
     // For stateful mode, we're done after filtering by the keys of desired + state. Stateless mode
     // requires additional filtering for stateful parameter arrays and objects.
-    if (isStateful) {
+    if (isStateful && desired) {
       return filteredCurrent;
+    }
+
+    // We also want to filter parameters when in delete mode. We don't want to delete parameters that
+    // are not specified in the original config.
+    if (isStateful && !desired) {
+      const arrayStatefulParameters = Object.fromEntries(
+        Object.entries(filteredCurrent)
+          .filter(([k, v]) => isArrayParameterWithFiltering(k, v))
+          .map(([k, v]) => [k, filterArrayParameterForDeletes(k, v)])
+      )
+
+      return { ...filteredCurrent, ...arrayStatefulParameters }
     }
 
     // TODO: Add object handling here in addition to arrays in the future
     const arrayStatefulParameters = Object.fromEntries(
       Object.entries(filteredCurrent)
         .filter(([k, v]) => isArrayParameterWithFiltering(k, v))
-        .map(([k, v]) => [k, filterArrayStatefulParameter(k, v)])
+        .map(([k, v]) => [k, filterArrayParameterForStatelessMode(k, v)])
     )
 
     return { ...filteredCurrent, ...arrayStatefulParameters }
@@ -378,7 +390,7 @@ export class Plan<T extends StringIndexedObject> {
 
     function isArrayParameterWithFiltering(k: string, v: T[keyof T]): boolean {
       const filterParameter = getFilterParameter(k);
-      
+
       if (settings.parameterSettings?.[k]?.type === 'stateful') {
         const statefulSetting = settings.parameterSettings[k] as ParsedStatefulParameterSetting;
         return statefulSetting.nestedSettings.type === 'array' &&
@@ -392,7 +404,7 @@ export class Plan<T extends StringIndexedObject> {
     }
 
     // For stateless mode, we must filter the current array so that the diff algorithm will not detect any deletes
-    function filterArrayStatefulParameter(k: string, v: unknown[]): unknown[] {
+    function filterArrayParameterForStatelessMode(k: string, v: unknown[]): unknown[] {
       const desiredArray = desired![k] as unknown[];
       const matcher = settings.parameterSettings![k]!.type === 'stateful'
         ? ((settings.parameterSettings![k] as ParsedStatefulParameterSetting)
@@ -426,6 +438,43 @@ export class Plan<T extends StringIndexedObject> {
       return typeof filterParameter === 'function'
         ? filterParameter(desiredCopy, currentCopy)
         : defaultFilterMethod(desiredCopy, currentCopy);
+    }
+
+    function filterArrayParameterForDeletes(k: string, v: unknown[]): unknown[] {
+      const stateArray = state![k] as unknown[];
+      const matcher = settings.parameterSettings![k]!.type === 'stateful'
+        ? ((settings.parameterSettings![k] as ParsedStatefulParameterSetting)
+          .nestedSettings as ParsedArrayParameterSetting)
+          .isElementEqual
+        : (settings.parameterSettings![k] as ParsedArrayParameterSetting)
+          .isElementEqual
+
+      const stateCopy = [...stateArray];
+      const currentCopy = [...v];
+
+      const defaultFilterMethod = ((state: any[], current: any[]) => {
+        const result = [];
+
+        for (let counter = state.length - 1; counter >= 0; counter--) {
+          const idx = currentCopy.findIndex((e2) => matcher(state[counter], e2))
+
+          if (idx === -1) {
+            continue;
+          }
+
+          state.splice(counter, 1)
+          const [element] = current.splice(idx, 1)
+          result.push(element)
+        }
+
+        return result;
+      })
+
+
+      const filterParameter = getFilterParameter(k);
+      return typeof filterParameter === 'function'
+        ? filterParameter(stateCopy, currentCopy)
+        : defaultFilterMethod(stateCopy, currentCopy);
     }
   }
 

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ResourceSettings } from './resource-settings.js';
 import { ParsedResourceSettings } from './parsed-resource-settings.js';
 import { TestConfig } from '../utils/test-utils.test.js';
+import { z } from 'zod';
+import { OS } from '@codifycli/schemas';
 
 describe('Resource options parser tests', () => {
   it('Parses default values from options', () => {
@@ -158,5 +160,27 @@ describe('Resource options parser tests', () => {
     }
 
     expect(() => new ParsedResourceSettings(option)).toThrowError()
+  })
+
+  it('Can handle a zod schema', () => {
+
+    const schema = z.object({
+      propA: z.string(),
+      repository: z.string(),
+    })
+
+    const option: ResourceSettings<z.infer<typeof schema>> = {
+      id: 'typeId',
+      operatingSystems: [OS.Darwin],
+      schema,
+      importAndDestroy: {
+        defaultRefreshValues: {
+          repository: 'abc'
+        }
+      }
+    }
+
+    console.log(new ParsedResourceSettings(option))
+
   })
 })

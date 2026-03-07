@@ -1,5 +1,6 @@
+import { LinuxDistro, OS, StringIndexedObject } from '@codifycli/schemas';
 import { JSONSchemaType } from 'ajv';
-import { StringIndexedObject } from 'codify-schemas';
+import { ZodObject, z } from 'zod';
 
 import { StatefulParameterController } from '../stateful-parameter/stateful-parameter-controller.js';
 import {
@@ -7,12 +8,12 @@ import {
   DefaultParameterSetting,
   InputTransformation,
   ParameterSetting,
+  ResourceSettings,
+  StatefulParameterSetting,
   resolveElementEqualsFn,
   resolveEqualsFn,
   resolveMatcher,
-  resolveParameterTransformFn,
-  ResourceSettings,
-  StatefulParameterSetting
+  resolveParameterTransformFn
 } from './resource-settings.js';
 
 export interface ParsedStatefulParameterSetting extends DefaultParameterSetting {
@@ -29,7 +30,7 @@ export type ParsedArrayParameterSetting = {
 
 export type ParsedParameterSetting =
   {
-  isEqual: (desired: unknown, current: unknown) => boolean;
+    isEqual: (desired: unknown, current: unknown) => boolean;
   } & (DefaultParameterSetting
   | ParsedArrayParameterSetting
   | ParsedStatefulParameterSetting)
@@ -37,25 +38,43 @@ export type ParsedParameterSetting =
 export class ParsedResourceSettings<T extends StringIndexedObject> implements ResourceSettings<T> {
   private cache = new Map<string, unknown>();
   id!: string;
+  description?: string;
+
   schema?: Partial<JSONSchemaType<T | any>>;
   allowMultiple?: {
+    identifyingParameters?: string[];
     matcher?: (desired: Partial<T>, current: Partial<T>) => boolean;
-    requiredParameters?: string[]
+    findAllParameters?: () => Promise<Array<Partial<T>>>
   } | boolean;
 
   removeStatefulParametersBeforeDestroy?: boolean | undefined;
   dependencies?: string[] | undefined;
   transformation?: InputTransformation;
+
+  operatingSystems!: Array<OS>;
+  linuxDistros?: Array<LinuxDistro>;
+
+  isSensitive?: boolean;
+
   private settings: ResourceSettings<T>;
 
   constructor(settings: ResourceSettings<T>) {
     this.settings = settings;
-    this.id = settings.id;
-    this.schema = settings.schema;
-    this.allowMultiple = settings.allowMultiple;
-    this.removeStatefulParametersBeforeDestroy = settings.removeStatefulParametersBeforeDestroy;
-    this.dependencies = settings.dependencies;
-    this.transformation = settings.transformation;
+    const { parameterSettings, schema, ...rest } = settings;
+
+    Object.assign(this, rest);
+
+    if (schema) {
+      this.schema = schema instanceof ZodObject
+        ? z.toJSONSchema(schema.strict(), {
+          target: 'draft-7',
+          override(ctx) {
+            ctx.jsonSchema.title = settings.id;
+            ctx.jsonSchema.description = settings.description ?? `${settings.id} resource. Can be used to manage ${settings.id}`;
+          }
+        }) as JSONSchemaType<T>
+        : schema;
+    }
 
     this.validateSettings();
   }
@@ -198,7 +217,7 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
       throw new Error(`Resource: ${this.id}. Stateful parameters are not allowed to be identifying parameters for allowMultiple.`)
     }
 
-    const schema = this.settings.schema as JSONSchemaType<any>;
+    const schema = this.schema as JSONSchemaType<any>;
     if (!this.settings.importAndDestroy && (schema?.oneOf
         && Array.isArray(schema.oneOf)
         && schema.oneOf.some((s) => s.required)

@@ -1,4 +1,3 @@
-import { JSONSchemaType } from 'ajv';
 import {
   ApplyRequestData,
   GetResourceInfoRequestData,
@@ -12,19 +11,21 @@ import {
   PlanRequestData,
   PlanResponseData,
   ResourceConfig,
-  ResourceJson,
+  ResourceJson, SetVerbosityRequestData,
   ValidateRequestData,
   ValidateResponseData
-} from 'codify-schemas';
+} from '@codifycli/schemas';
+import { JSONSchemaType } from 'ajv';
 
 import { ApplyValidationError } from '../common/errors.js';
 import { Plan } from '../plan/plan.js';
 import { BackgroundPty } from '../pty/background-pty.js';
 import { getPty } from '../pty/index.js';
+import { SequentialPty } from '../pty/seqeuntial-pty.js';
 import { Resource } from '../resource/resource.js';
 import { ResourceController } from '../resource/resource-controller.js';
 import { ptyLocalStorage } from '../utils/pty-local-storage.js';
-import { VerbosityLevel } from '../utils/utils.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 
 export class Plugin {
   planStorage: Map<string, Plan<any>>;
@@ -75,6 +76,8 @@ export class Plugin {
             dependencies: r.dependencies,
             type: r.typeId,
             sensitiveParameters,
+            operatingSystems: r.settings.operatingSystems,
+            linuxDistros: r.settings.linuxDistros,
           }
         })
     }
@@ -87,7 +90,7 @@ export class Plugin {
 
     const resource = this.resourceControllers.get(data.type)!;
 
-    const schema = resource.settings.schema as JSONSchemaType<any> | undefined;
+    const schema = resource.parsedSettings.schema as JSONSchemaType<any> | undefined;
     const requiredPropertyNames = (
       resource.settings.importAndDestroy?.requiredParameters
       ?? (typeof resource.settings.allowMultiple === 'object' ? resource.settings.allowMultiple.identifyingParameters : null)
@@ -121,6 +124,8 @@ export class Plugin {
       import: {
         requiredParameters: requiredPropertyNames,
       },
+      operatingSystems: resource.settings.operatingSystems,
+      linuxDistros: resource.settings.linuxDistros,
       sensitiveParameters,
       allowMultiple
     }
@@ -232,7 +237,7 @@ export class Plugin {
       throw new Error('Malformed plan with resource that cannot be found');
     }
 
-    await resource.apply(plan);
+    await ptyLocalStorage.run(new SequentialPty(), async () => resource.apply(plan))
 
     // Validate using desired/desired. If the apply was successful, no changes should be reported back.
     // Default back desired back to current if it is not defined (for destroys only)
@@ -252,6 +257,10 @@ export class Plugin {
     if (validationPlan.requiresChanges()) {
       throw new ApplyValidationError(plan);
     }
+  }
+
+  async setVerbosityLevel(data: SetVerbosityRequestData): Promise<void> {
+    VerbosityLevel.set(data.verbosityLevel);
   }
 
   async kill() {

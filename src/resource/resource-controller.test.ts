@@ -1,5 +1,5 @@
 import { Resource } from './resource.js';
-import { ResourceOperation } from 'codify-schemas';
+import { OS, ResourceOperation } from '@codifycli/schemas';
 import { spy } from 'sinon';
 import { describe, expect, it } from 'vitest'
 import { ArrayParameterSetting, ParameterSetting, ResourceSettings } from './resource-settings.js';
@@ -7,10 +7,11 @@ import { CreatePlan, DestroyPlan, ModifyPlan } from '../plan/plan-types.js';
 import { ParameterChange } from '../plan/change-set.js';
 import { ResourceController } from './resource-controller.js';
 import { TestConfig, testPlan, TestResource, TestStatefulParameter } from '../utils/test-utils.test.js';
-import { tildify, untildify } from '../utils/utils.js';
+import { tildify, untildify } from '../utils/functions.js';
 import { ArrayStatefulParameter, StatefulParameter } from '../stateful-parameter/stateful-parameter.js';
 import { Plan } from '../plan/plan.js';
 import os from 'node:os';
+import { z } from 'zod';
 
 describe('Resource tests', () => {
 
@@ -19,6 +20,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           dependencies: ['homebrew', 'python'],
           parameterSettings: {
             propA: {
@@ -197,6 +199,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resource',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { canModify: true },
             propB: { canModify: true },
@@ -232,6 +235,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           dependencies: ['homebrew', 'python'],
           parameterSettings: {
             propA: { canModify: true },
@@ -254,6 +258,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           dependencies: ['homebrew', 'python'],
           parameterSettings: {
             propA: { canModify: true },
@@ -270,6 +275,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { default: 'propADefault' }
           }
@@ -298,6 +304,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propE: { default: 'propEDefault' }
           }
@@ -325,6 +332,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propE: { default: 'propEDefault' }
           }
@@ -348,6 +356,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { default: 'propADefault' }
           }
@@ -376,6 +385,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { default: 'propADefault' }
           }
@@ -392,7 +402,7 @@ describe('Resource tests', () => {
   it('Has the correct typing for applys', () => {
     const resource = new class extends Resource<TestConfig> {
       getSettings(): ResourceSettings<TestConfig> {
-        return { id: 'type' }
+        return { id: 'type', operatingSystems: [OS.Darwin], }
       }
 
       async refresh(): Promise<Partial<TestConfig> | null> {
@@ -418,7 +428,8 @@ describe('Resource tests', () => {
     const parameter1 = new class extends StatefulParameter<any, any> {
       getSettings(): ParameterSetting {
         return {
-          type: 'version'
+          type: 'version',
+          operatingSystems: [OS.Darwin],
         }
       }
 
@@ -462,6 +473,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'nvm',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             global: { type: 'stateful', definition: parameter1, order: 2 },
             nodeVersions: { type: 'stateful', definition: parameter2, order: 1 },
@@ -514,6 +526,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'nvm',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             global: { type: 'stateful', definition: parameter1, order: 2 },
             nodeVersions: { type: 'stateful', definition: parameter2, order: 1 },
@@ -546,6 +559,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: {
               type: 'array',
@@ -630,6 +644,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: {
               type: 'array',
@@ -720,6 +735,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string', default: 'defaultValue' },
             propB: { type: 'boolean', default: true }
@@ -755,6 +771,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'path',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             path: { type: 'string', isEqual: 'directory' },
             paths: { canModify: true, type: 'array', isElementEqual: 'directory' },
@@ -797,6 +814,7 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'path',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             path: { type: 'string', isEqual: 'directory' },
             paths: { canModify: true, type: 'array', isElementEqual: 'directory' },
@@ -840,6 +858,132 @@ describe('Resource tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'path',
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            path: { type: 'directory' },
+            paths: { canModify: true, type: 'array', itemType: 'directory' },
+            prepend: { default: false, setting: true },
+            declarationsOnly: { default: false, setting: true },
+          },
+          importAndDestroy: {
+            refreshMapper: (input, context) => {
+              if (Object.keys(input).length === 0) {
+                return { paths: [], declarationsOnly: true };
+              }
+
+              return input;
+            }
+          },
+          allowMultiple: {
+            matcher: (desired, current) => {
+              if (desired.path) {
+                return desired.path === current.path;
+              }
+
+              const currentPaths = new Set(current.paths)
+              return desired.paths?.some((p) => currentPaths.has(p));
+            }
+          }
+        }
+      }
+
+      async refresh(parameters: Partial<TestConfig>): Promise<Partial<TestConfig> | null> {
+        return {
+          paths: [
+            `${os.homedir()}/.pyenv/bin`,
+            `${os.homedir()}/.bun/bin`,
+            `${os.homedir()}/.deno/bin`,
+            `${os.homedir()}/.jenv/bin`,
+            `${os.homedir()}/a/random/path`,
+            `${os.homedir()}/.nvm/.bin/2`,
+            `${os.homedir()}/.nvm/.bin/3`
+          ]
+        }
+      }
+    }
+
+    const oldProcessEnv = structuredClone(process.env);
+
+    process.env['PYENV_ROOT'] = `${os.homedir()}/.pyenv`
+    process.env['BUN_INSTALL'] = `${os.homedir()}/.bun`
+    process.env['DENO_INSTALL'] = `${os.homedir()}/.deno`
+    process.env['JENV'] = `${os.homedir()}/.jenv`
+    process.env['NVM_DIR'] = `${os.homedir()}/.nvm`
+
+    const controller = new ResourceController(resource);
+    const importResult1 = await controller.import({ type: 'path' }, {});
+    expect(importResult1).toMatchObject([
+      {
+        'core': {
+          'type': 'path'
+        },
+        'parameters': {
+          'paths': [
+            '$PYENV_ROOT/bin',
+            '$BUN_INSTALL/bin',
+            '$DENO_INSTALL/bin',
+            '$JENV/bin',
+            '~/a/random/path',
+            '$NVM_DIR/.bin/2',
+            '$NVM_DIR/.bin/3'
+          ]
+        }
+      }
+    ])
+
+    const importResult2 = await controller.import({ type: 'path' }, { paths: ['$PYENV_ROOT/bin', '$BUN_INSTALL/bin'] });
+    expect(importResult2).toMatchObject([
+      {
+        'core': {
+          'type': 'path'
+        },
+        'parameters': {
+          'paths': [
+            '$PYENV_ROOT/bin',
+            '$BUN_INSTALL/bin',
+            '$DENO_INSTALL/bin',
+            '$JENV/bin',
+            '~/a/random/path',
+            '$NVM_DIR/.bin/2',
+            '$NVM_DIR/.bin/3'
+          ]
+        }
+      }
+    ])
+
+    process.env = oldProcessEnv;
+  })
+
+  it('Can import and return all of the imported parameters (zod schema)', async () => {
+    const schema = z.object({
+      path: z
+        .string()
+        .describe(
+          'A list of paths to add to the PATH environment variable'
+        ),
+      paths: z
+        .array(z.string())
+        .describe(
+          'A list of paths to add to the PATH environment variable'
+        ),
+      prepend: z
+        .boolean()
+        .describe(
+          'Whether to prepend the paths to the PATH environment variable'
+        ),
+      declarationsOnly: z
+        .boolean()
+        .describe(
+          'Whether to only declare the paths in the PATH environment variable'
+        ),
+    })
+
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<any> {
+        return {
+          id: 'path',
+          schema,
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             path: { type: 'directory' },
             paths: { canModify: true, type: 'array', itemType: 'directory' },

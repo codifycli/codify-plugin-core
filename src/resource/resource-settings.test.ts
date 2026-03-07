@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Plan } from '../plan/plan.js';
 import { spy } from 'sinon';
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { OS, ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import {
   TestArrayStatefulParameter,
   TestConfig,
@@ -13,6 +13,7 @@ import { ArrayParameterSetting, ParameterSetting, ResourceSettings } from './res
 import { ResourceController } from './resource-controller.js';
 import os from 'node:os';
 import path from 'node:path';
+import { z } from 'zod';
 
 describe('Resource parameter tests', () => {
   it('Generates a resource plan that includes stateful parameters (create)', async () => {
@@ -26,6 +27,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameter }
           },
@@ -71,6 +73,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy }
           },
@@ -105,6 +108,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy },
             propB: { canModify: true },
@@ -137,7 +141,8 @@ describe('Resource parameter tests', () => {
     const statefulParameter = spy(new class extends TestStatefulParameter {
       getSettings(): ParameterSetting {
         return {
-          default: 'abc'
+          default: 'abc',
+          operatingSystems: [OS.Darwin],
         };
       }
 
@@ -150,6 +155,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameter }
           },
@@ -191,6 +197,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy },
           },
@@ -225,6 +232,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy }
           },
@@ -251,6 +259,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             hosts: {
               type: 'array',
@@ -360,6 +369,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterSpy }
           },
@@ -416,6 +426,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterA, order: 3 },
             propB: { type: 'stateful', definition: statefulParameterB, order: 1 },
@@ -494,6 +505,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'stateful', definition: statefulParameterA, order: 3 },
             propB: { type: 'stateful', definition: statefulParameterB, order: 1 },
@@ -569,6 +581,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           transformation: {
             to: (desired) => ({
               propA: 'propA',
@@ -610,6 +623,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           transformation: {
             to: (desired) => ({
               propA: 'propA',
@@ -649,6 +663,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           importAndDestroy: {
             requiredParameters: [
               'propA',
@@ -668,6 +683,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'directory' }
           }
@@ -695,6 +711,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string', setting: true },
             propB: { type: 'number' }
@@ -737,6 +754,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           importAndDestroy: {
             requiredParameters: ['propA'],
             refreshKeys: ['propB', 'propA'],
@@ -754,6 +772,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'string', isEqual: 'version' }
           }
@@ -780,6 +799,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: { type: 'object' }
           }
@@ -822,6 +842,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: { type: 'object' }
           }
@@ -863,6 +884,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: {
               type: 'array',
@@ -968,6 +990,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propD: { type: 'stateful', definition: sp }
           }
@@ -1007,6 +1030,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'version' }
           }
@@ -1036,6 +1060,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'directory' }
           }
@@ -1065,6 +1090,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'directory' }
           },
@@ -1101,6 +1127,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'array', itemType: 'directory' }
           },
@@ -1127,6 +1154,7 @@ describe('Resource parameter tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'resourceType',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             propA: { type: 'directory' }
           },
@@ -1147,4 +1175,39 @@ describe('Resource parameter tests', () => {
     expect(from2).to.eq('$HOME/abc/def')
 
   })
+
+  it('Can match directories 2', async () => {
+
+    const schema = z.object({
+      propA: z.string(),
+      propB: z.number(),
+    });
+
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<z.infer<typeof schema>> {
+        return {
+          id: 'resourceType',
+          schema,
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            propA: { type: 'directory' }
+          },
+        }
+      }
+    };
+
+    const controller = new ResourceController(resource);
+    const transformations = controller.parsedSettings.inputTransformations.propA;
+
+    const to = transformations!.to('$HOME/abc/def')
+    expect(to).to.eq(os.homedir() + '/abc/def')
+
+    const from = transformations!.from(os.homedir() + '/abc/def')
+    expect(from).to.eq('~/abc/def')
+
+    const from2 = transformations!.from(os.homedir() + '/abc/def', '$HOME/abc/def')
+    expect(from2).to.eq('$HOME/abc/def')
+
+  })
+
 })

@@ -6,7 +6,8 @@ import * as fs from 'node:fs/promises';
 import stripAnsi from 'strip-ansi';
 
 import { debugLog } from '../utils/debug.js';
-import { VerbosityLevel } from '../utils/utils.js';
+import { Shell, Utils } from '../utils/index.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { IPty, SpawnError, SpawnOptions, SpawnResult } from './index.js';
 import { PromiseQueue } from './promise-queue.js';
 
@@ -19,8 +20,11 @@ EventEmitter.defaultMaxListeners = 1000;
  * without a tty (or even a stdin) attached so interactive commands will not work.
  */
 export class BackgroundPty implements IPty {
-  private basePty = pty.spawn('zsh', ['-i'], {
-    env: process.env, name: nanoid(6),
+  private historyIgnore = Utils.getShell() === Shell.ZSH ? { HISTORY_IGNORE: '*' } : { HISTIGNORE: '*' };
+  private basePty = pty.spawn(this.getDefaultShell(), ['-i'], {
+    env: { ...process.env, ...this.historyIgnore },
+    cols: 10_000, // Set to a really large value to prevent wrapping
+    name: nanoid(6),
     handleFlowControl: true
   });
 
@@ -30,17 +34,19 @@ export class BackgroundPty implements IPty {
     this.initialize();
   }
 
-  async spawn(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+  async spawn(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult> {
     const spawnResult = await this.spawnSafe(cmd, options);
 
     if (spawnResult.status !== 'success') {
-      throw new SpawnError(cmd, spawnResult.exitCode, spawnResult.data);
+      throw new SpawnError(Array.isArray(cmd) ? cmd.join(' ') : cmd, spawnResult.exitCode, spawnResult.data);
     }
 
     return spawnResult;
   }
 
-  async spawnSafe(cmd: string, options?: SpawnOptions): Promise<SpawnResult> {
+  async spawnSafe(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult> {
+    cmd = Array.isArray(cmd) ? cmd.join('\\\n') : cmd;
+
     // cid is command id
     const cid = nanoid(10);
     debugLog(cid);
@@ -101,7 +107,7 @@ export class BackgroundPty implements IPty {
           }
         });
 
-        console.log(`Running command ${cmd}${options?.cwd ? ` (cwd: ${options.cwd})` : ''}`)
+        console.log(`Running command: ${cmd}${options?.cwd ? ` (cwd: ${options.cwd})` : ''}`)
         this.basePty.write(`${command}\r`);
 
       }));
@@ -127,7 +133,6 @@ export class BackgroundPty implements IPty {
       let outputBuffer = '';
 
       return new Promise(resolve => {
-        this.basePty.write('setopt hist_ignore_space;\n');
         this.basePty.write(' unset PS1;\n');
         this.basePty.write(' unset PS0;\n')
         this.basePty.write(' echo setup complete\\"\n')
@@ -141,5 +146,9 @@ export class BackgroundPty implements IPty {
         })
       })
     })
+  }
+
+  private getDefaultShell(): string {
+    return process.env.SHELL!;
   }
 }

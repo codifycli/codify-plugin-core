@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { Plugin } from './plugin.js';
-import { ApplyRequestData, ParameterOperation, ResourceOperation, StringIndexedObject } from 'codify-schemas';
+import { ApplyRequestData, OS, ParameterOperation, ResourceOperation, StringIndexedObject } from '@codifycli/schemas';
 import { Resource } from '../resource/resource.js';
 import { Plan } from '../plan/plan.js';
 import { spy } from 'sinon';
 import { ResourceSettings } from '../resource/resource-settings.js';
 import { TestConfig, TestStatefulParameter } from '../utils/test-utils.test.js';
 import { getPty } from '../pty/index.js';
+import { z } from 'zod';
 
 interface TestConfig extends StringIndexedObject {
   propA: string;
@@ -17,7 +18,8 @@ interface TestConfig extends StringIndexedObject {
 class TestResource extends Resource<TestConfig> {
   getSettings(): ResourceSettings<TestConfig> {
     return {
-      id: 'testResource'
+      id: 'testResource',
+      operatingSystems: [OS.Darwin],
     };
   }
 
@@ -154,6 +156,37 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'typeId',
+          operatingSystems: [OS.Darwin],
+          schema,
+        }
+      }
+    }
+    const testPlugin = Plugin.create('testPlugin', [resource as any])
+
+    const resourceInfo = await testPlugin.getResourceInfo({ type: 'typeId' })
+    expect(resourceInfo.import).toMatchObject({
+      requiredParameters: [
+        'plugins'
+      ]
+    })
+  })
+
+  it('Can get resource info (zod schema)', async () => {
+    const schema = z
+      .object({
+        plugins: z
+          .array(z.string())
+          .describe(
+            'Asdf plugins to install. See: https://github.com/asdf-community for a full list'
+          )
+      })
+      .strict()
+
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<TestConfig> {
+        return {
+          id: 'typeId',
+          operatingSystems: [OS.Darwin],
           schema,
         }
       }
@@ -192,6 +225,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'typeId',
+          operatingSystems: [OS.Darwin],
           schema,
           importAndDestroy: {
             requiredParameters: []
@@ -285,6 +319,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'type',
+          operatingSystems: [OS.Darwin],
           schema: {
             '$schema': 'http://json-schema.org/draft-07/schema',
             '$id': 'https://www.codifycli.com/ssh-config.json',
@@ -330,6 +365,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           ...super.getSettings(),
+          operatingSystems: [OS.Darwin],
           allowMultiple: {
             identifyingParameters: ['path', 'paths']
           }
@@ -351,6 +387,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           ...super.getSettings(),
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             path: { type: 'directory' },
             paths: { type: 'array', itemType: 'directory' }
@@ -407,6 +444,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'ssh-config',
+          operatingSystems: [OS.Darwin],
           parameterSettings: {
             hosts: { type: 'stateful', definition: new TestStatefulParameter() }
           },
@@ -454,6 +492,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'ssh-config',
+          operatingSystems: [OS.Darwin],
           allowMultiple: true
         }
       }
@@ -476,6 +515,7 @@ describe('Plugin tests', () => {
       getSettings(): ResourceSettings<TestConfig> {
         return {
           id: 'ssh-config',
+          operatingSystems: [OS.Darwin],
         }
       }
     })
