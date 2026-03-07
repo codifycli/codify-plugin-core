@@ -233,9 +233,7 @@ Two PTY implementations:
 Configure resource behavior via `ResourceSettings<T>`:
 
 ```typescript
-getSettings()
-:
-ResourceSettings < MyConfig > {
+getSettings(): ResourceSettings<MyConfig> {
   return {
     // Required: unique type identifier
     id: 'my-resource',
@@ -338,52 +336,20 @@ ResourceSettings < MyConfig > {
 
 ```typescript
 // PTY access
-getPty()
-:
-IPty
+getPty(): IPty
 
 // Path utilities
-tildify(absolutePath
-:
-string
-):
-string
-untildify(pathWithTilde
-:
-string
-):
-string
-resolvePathWithVariables(path
-:
-string
-):
-string
-addVariablesToPath(absolutePath
-:
-string
-):
-string
+tildify(absolutePath: string): string
+untildify(pathWithTilde: string): string
+resolvePathWithVariables(path: string): string
+addVariablesToPath(absolutePath: string): string
 
 // File utilities
-fileExists(path
-:
-string
-):
-Promise<boolean>
-directoryExists(path
-:
-string
-):
-Promise<boolean>
+fileExists(path: string): Promise<boolean>
+directoryExists(path: string): Promise<boolean>
 
 // Array utilities
-areArraysEqual<T>(a
-:
-T[], b
-:
-T[], isEqual ? : (a: T, b: T) => boolean
-):
-boolean
+areArraysEqual<T>(a: T[], b: T[], isEqual?: (a: T, b: T) => boolean): boolean
 ```
 
 ## Building Plugins
