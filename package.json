@@ -1,7 +1,7 @@
 {
   "name": "@codifycli/plugin-core",
-  "version": "1.0.0-beta1",
-  "description": "Core library for implementing a plugin for Codify",
+  "version": "1.0.0-beta3",
+  "description": "TypeScript library for building Codify plugins to manage system resources (applications, CLI tools, settings) through infrastructure-as-code",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "type": "module",
@@ -13,8 +13,26 @@
   "bin": {
     "codify-build": "./bin/build.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "codify",
+    "plugin",
+    "infrastructure-as-code",
+    "iac",
+    "system-management",
+    "resource-management",
+    "configuration-management",
+    "typescript",
+    "cli-tools",
+    "applications",
+    "system-resources",
+    "declarative",
+    "automation"
+  ],
+  "author": "Kevin Wang <team@codifycli.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codifycli/codify-plugin-core.git"
+  },
   "license": "ISC",
   "dependencies": {
     "@codifycli/schemas": "1.0.0",
