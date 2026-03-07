@@ -1,6 +1,6 @@
 # @codifycli/plugin-core
 
-Core library for building [Codify](https://github.com/codifycli) plugins. Codify is an infrastructure-as-code tool that
+Core library for building [Codify](https://codifycli.com) plugins. Codify is an infrastructure-as-code tool that
 manages system resources (applications, CLI tools, and settings) through declarative JSON configuration files.
 
 ## Overview
