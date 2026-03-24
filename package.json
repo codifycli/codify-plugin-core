@@ -8,10 +8,13 @@
   "scripts": {
     "test": "vitest",
     "posttest": "tsc",
-    "prepublishOnly": "tsc"
+    "prepublishOnly": "tsc",
+    "build": "node ./bin/build.js",
+    "publish-plugin": "node ./bin/publish.js"
   },
   "bin": {
-    "codify-build": "./bin/build.js"
+    "codify-build": "./bin/build.js",
+    "codify-publish": "./bin/publish.js"
   },
   "keywords": [
     "codify",
@@ -42,6 +45,7 @@
     "clean-deep": "^3.4.0",
     "lodash.isequal": "^4.5.0",
     "nanoid": "^5.0.9",
+    "semver": "^7.6.0",
     "strip-ansi": "^7.1.0",
     "uuid": "^10.0.0",
     "zod": "4.1.13"
