@@ -1,17 +1,56 @@
 #!/usr/bin/env node
 import { IpcMessageSchema, MessageStatus, ResourceSchema } from '@codifycli/schemas';
+import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
+import nodeResolve from '@rollup/plugin-node-resolve';
+import typescript from '@rollup/plugin-typescript';
 import { Ajv } from 'ajv';
 import mergeJsonSchemas from 'merge-json-schemas';
 import { fork } from 'node:child_process';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
+import { rollup } from 'rollup';
 
-import { SequentialPty, VerbosityLevel } from '../dist/index.js';
+const rollupConfig = {
+  input: 'src/index.ts',
+  output: {
+    dir: 'dist',
+    format: 'cjs',
+    inlineDynamicImports: true,
+  },
+  treeshake: true,
+  external: ['@homebridge/node-pty-prebuilt-multiarch'],
+  plugins: [
+    json(),
+    nodeResolve({ exportConditions: ['node'] }),
+    typescript({
+      exclude: ['**/*.test.ts', '**/*.d.ts', 'test', 'bin']
+    }),
+    commonjs(),
+    // terser()
+  ]
+};
+
 
 const ajv = new Ajv({
   strict: true
 });
 const ipcMessageValidator = ajv.compile(IpcMessageSchema);
+
+async function rollupProject() {
+  await fs.mkdir('./dist', { recursive: true });
+
+ const bundle = await rollup(rollupConfig);
+  const { output } = await bundle.generate({ dir: 'dist', format: 'es' })
+
+  for (const a of output) {
+    if (a.type !== 'asset') {
+      await fs.writeFile(path.join('dist', a.fileName), a.code);
+    }
+  }
+
+  await bundle.close();
+}
 
 function sendMessageAndAwaitResponse(process, message) {
   return new Promise((resolve, reject) => {
@@ -35,38 +74,49 @@ function sendMessageAndAwaitResponse(process, message) {
   });
 }
 
-function fetchDocumentationMaps() {
+async function buildDocumentation() {
   console.log('Building documentation...');
 
   const results = new Map();
   const resourcesPath = path.resolve(process.cwd(), 'src', 'resources');
-  const resourcesDir = fs.readdirSync(resourcesPath);
 
-  for (const resource of resourcesDir) {
-    const resourcePath = path.join(resourcesPath, resource);
-    if (!isDirectory(resourcePath)) continue;
+  // Helper function to recursively find README files
+  async function findReadmeFiles(dir, relativePath = '') {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
 
-    const contents = fs.readdirSync(resourcePath);
-    const isGroup = contents.some((content) => isDirectory(path.join(resourcePath, content)));
-    const isAllDir = contents.every((content) => isDirectory(path.join(resourcePath, content)));
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      const currentRelativePath = relativePath ? path.join(relativePath, entry.name) : entry.name;
 
-    if (isGroup && !isAllDir) {
-      throw new Error(`Documentation groups must only contain directories. ${resourcePath} does not`);
-    }
+      if (entry.isDirectory()) {
+        // Recurse into subdirectories
+        await findReadmeFiles(fullPath, currentRelativePath);
+      } else if (entry.isFile() && (entry.name === 'README.md' || entry.name === 'README.mdx')) {
+        // Found a README file - determine its output path
+        const sourceFile = path.join(dir, entry.name);
+        const dirRelativePath = path.dirname(currentRelativePath);
 
-    if (!isGroup) {
-      if (contents.includes('README.md')) {
-        results.set(resource, resource);
-      }
-    } else {
-      for (const innerDir of contents) {
-        const innerDirReadme = path.join(resourcePath, innerDir, 'README.md');
-        if (isFile(innerDirReadme)) {
-          results.set(innerDir, path.relative('./src/resources', path.join(resourcePath, innerDir)));
+        let outputPath;
+        if (relativePath === '') {
+          // Root README.md in /src/resources -> /dist/docs/index.md
+          outputPath = 'index.md';
+        } else if (dirRelativePath === '.') {
+          // One level deep: /src/resources/git/README.md -> /dist/docs/resources/git.md
+          outputPath = path.join('resources', path.basename(currentRelativePath, path.extname(currentRelativePath)) + '.md');
+        } else {
+          // Deeper nesting: maintain parent folders
+          // /src/resources/package-managers/homebrew/README.md -> /dist/docs/resources/package-managers/homebrew.md
+          const parentPath = path.dirname(dirRelativePath);
+          const fileName = path.basename(dirRelativePath);
+          outputPath = path.join('resources', parentPath, fileName + '.md');
         }
+
+        results.set(sourceFile, outputPath);
       }
     }
   }
+
+  await findReadmeFiles(resourcesPath);
 
   return results;
 }
@@ -87,103 +137,136 @@ function isFile(path) {
   }
 }
 
-VerbosityLevel.set(3);
-const $ = new SequentialPty();
+async function main() {
+  await fs.rm('./dist', { recursive: true, force: true });
 
-await $.spawn('rm -rf ./dist')
-await $.spawn('npm run rollup -- -f es', { interactive: true });
+  await fs.mkdir('./dist');
+  await rollupProject();
 
-const plugin = fork(
-  './dist/index.js',
-  [],
-  {
-    // Use default true to test plugins in secure mode (un-able to request sudo directly)
-    detached: true,
-    env: { ...process.env },
-    execArgv: ['--import', 'tsx/esm'],
-  },
-)
+  const plugin = fork(
+    './dist/index.js',
+    [],
+    {
+      // Use default true to test plugins in secure mode (un-able to request sudo directly)
+      detached: true,
+      env: { ...process.env },
+      execArgv: ['--import', 'tsx/esm'],
+    },
+  )
 
-const initializeResult = await sendMessageAndAwaitResponse(plugin, {
-  cmd: 'initialize',
-  data: {}
-})
+  try {
 
-const { resourceDefinitions } = initializeResult;
-const resourceTypes = resourceDefinitions.map((i) => i.type);
-const resourceInfoMap = new Map();
+    const initializeResult = await sendMessageAndAwaitResponse(plugin, {
+      cmd: 'initialize',
+      data: {}
+    })
 
-const schemasMap = new Map()
-for (const type of resourceTypes) {
-  const resourceInfo = await sendMessageAndAwaitResponse(plugin, {
-    cmd: 'getResourceInfo',
-    data: { type }
-  })
+    const {resourceDefinitions} = initializeResult;
+    const resourceTypes = resourceDefinitions.map((i) => i.type);
+    const resourceInfoMap = new Map();
 
-  schemasMap.set(type, resourceInfo.schema);
-  resourceInfoMap.set(type, resourceInfo);
-}
+    const schemasMap = new Map()
+    for (const type of resourceTypes) {
+      const resourceInfo = await sendMessageAndAwaitResponse(plugin, {
+        cmd: 'getResourceInfo',
+        data: {type}
+      })
 
-console.log(resourceInfoMap);
+      schemasMap.set(type, resourceInfo.schema);
+      resourceInfoMap.set(type, resourceInfo);
+    }
 
-const mergedSchemas = [...schemasMap.entries()].map(([type, schema]) => {
-  // const resolvedSchema = await $RefParser.dereference(schema)
-  const resourceSchema = JSON.parse(JSON.stringify(ResourceSchema));
+    console.log(resourceInfoMap);
 
-  delete resourceSchema.$id;
-  delete resourceSchema.$schema;
-  delete resourceSchema.title;
-  delete resourceSchema.oneOf;
-  delete resourceSchema.properties.type;
+    const mergedSchemas = [...schemasMap.entries()].map(([type, schema]) => {
+      // const resolvedSchema = await $RefParser.dereference(schema)
+      const resourceSchema = JSON.parse(JSON.stringify(ResourceSchema));
 
-  if (schema) {
-    delete schema.$id;
-    delete schema.$schema;
-    delete schema.title;
-    delete schema.oneOf;
+      delete resourceSchema.$id;
+      delete resourceSchema.$schema;
+      delete resourceSchema.title;
+      delete resourceSchema.oneOf;
+      delete resourceSchema.properties.type;
+
+      if (schema) {
+        delete schema.$id;
+        delete schema.$schema;
+        delete schema.title;
+        delete schema.oneOf;
+      }
+
+      return mergeJsonSchemas([schema ?? {}, resourceSchema, {properties: {type: {const: type, type: 'string'}}}]);
+    });
+
+
+    await fs.rm('./dist', {recursive: true, force: true});
+    await rollupProject();
+
+    console.log('Generated JSON Schemas for all resources')
+
+    const distFolder = path.resolve(process.cwd(), 'dist');
+    const schemaOutputPath = path.resolve(distFolder, 'schemas.json');
+    await fs.writeFile(schemaOutputPath, JSON.stringify(mergedSchemas, null, 2));
+
+    console.log('Successfully wrote schema to ./dist/schemas.json');
+
+    const documentationMap = await buildDocumentation();
+    console.log('Documentation Map:', documentationMap);
+
+    // Build reverse map for resource type -> documentation path
+    const resourceTypeToDocPath = new Map();
+    for (const [sourceFile, outputPath] of documentationMap.entries()) {
+      // Extract resource type from source file path
+      // e.g., /src/resources/git/README.md -> git
+      // e.g., /src/resources/package-managers/homebrew/README.md -> homebrew
+      const relativePath = path.relative(path.resolve(process.cwd(), 'src', 'resources'), sourceFile);
+      const parts = relativePath.split(path.sep);
+
+      // Remove README.md/README.mdx from the end
+      parts.pop();
+
+      if (parts.length > 0) {
+        // Use the last directory name as the resource type
+        const resourceType = parts[parts.length - 1];
+        resourceTypeToDocPath.set(resourceType, outputPath);
+      }
+    }
+
+    const packageJson = JSON.parse(await fs.readFile('./package.json', 'utf8'));
+
+    await fs.writeFile('./dist/manifest.json', JSON.stringify({
+      name: packageJson.name,
+      version: packageJson.version,
+      description: packageJson.description,
+      resources: [...resourceInfoMap.values()].map((info) => ({
+        type: info.type,
+        description: info.description ?? info.schema?.description,
+        sensitiveParameters: info.sensitiveParameters,
+        schema: info.schema,
+        operatingSystems: info.operatingSystems,
+        documentationKey: resourceTypeToDocPath.get(info.type),
+      })),
+    }, null, 2), 'utf8');
+
+    // Copy documentation files to /dist/docs
+    const docsPath = path.join('dist', 'docs');
+    await fs.mkdir(docsPath, { recursive: true });
+
+    for (const [sourceFile, outputPath] of documentationMap.entries()) {
+      const destFile = path.join(docsPath, outputPath);
+      const destDir = path.dirname(destFile);
+
+      await fs.mkdir(destDir, { recursive: true });
+      await fs.copyFile(sourceFile, destFile);
+
+      console.log(`Copied ${sourceFile} -> ${destFile}`);
+    }
+  } catch(e) {
+    console.error(e);
+  } finally {
+    plugin.kill(9);
+    process.exit(0);
   }
-
-  return mergeJsonSchemas([schema ?? {}, resourceSchema, { properties: { type: { const: type, type: 'string' } } }]);
-});
-
-
-await $.spawn('rm -rf ./dist')
-await $.spawn('npm run rollup', { interactive: true }); // re-run rollup without building for es
-
-console.log('Generated JSON Schemas for all resources')
-
-const distFolder = path.resolve(process.cwd(), 'dist');
-const schemaOutputPath = path.resolve(distFolder, 'schemas.json');
-fs.writeFileSync(schemaOutputPath, JSON.stringify(mergedSchemas, null, 2));
-
-console.log('Successfully wrote schema to ./dist/schemas.json');
-
-const documentationMap = fetchDocumentationMaps();
-
-const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-
-fs.writeFileSync('./dist/manifest.json', JSON.stringify({
-  name: packageJson.name,
-  version: packageJson.version,
-  description: packageJson.description,
-  resources: [...resourceInfoMap.values()].map((info) => ({
-    type: info.type,
-    description: info.description ?? info.schema?.description,
-    sensitiveParameters: info.sensitiveParameters,
-    schema: info.schema,
-    operatingSystems: info.operatingSystems,
-    documentationKey: documentationMap.get(info.type),
-  })),
-}, null, 2), 'utf8');
-
-for (const key of documentationMap.values()) {
-  fs.mkdirSync(path.join('dist', 'documentation', key), { recursive: true })
-
-  fs.copyFileSync(
-    path.resolve(path.join('src', 'resources', key, 'README.md')),
-    path.resolve(path.join('dist', 'documentation', key, 'README.md')),
-  );
 }
 
-plugin.kill(9);
-process.exit(0);
+main();

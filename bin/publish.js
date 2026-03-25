@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { stdin as input, stdout as output } from 'node:process';
 import readline from 'node:readline/promises';
-import os from 'node:os';
 import semver from 'semver';
 
 const CREDENTIALS_PATH = path.join(os.homedir(), '.codify', 'credentials.json');
@@ -66,31 +66,41 @@ async function publish() {
     console.log(`   1. Patch (${suggestedPatch}) - Bug fixes, minor changes`);
     console.log(`   2. Minor (${suggestedMinor}) - New features, backward compatible`);
     console.log(`   3. Major (${suggestedMajor}) - Breaking changes`);
-    console.log(`   4. Custom version`);
+    console.log('   4. Custom version');
 
     const versionChoice = await rl.question('\n🔢 Select version increment (1-4): ');
     let newVersion;
 
     switch (versionChoice.trim()) {
-      case '1':
+      case '1': {
         newVersion = suggestedPatch;
         break;
-      case '2':
+      }
+
+      case '2': {
         newVersion = suggestedMinor;
         break;
-      case '3':
+      }
+
+      case '3': {
         newVersion = suggestedMajor;
         break;
-      case '4':
+      }
+
+      case '4': {
         newVersion = await rl.question('Enter custom version (e.g., 1.0.0-beta.1): ');
         if (!semver.valid(newVersion)) {
           console.error('❌ Invalid semantic version. Aborting.');
           process.exit(1);
         }
+
         break;
-      default:
+      }
+
+      default: {
         console.error('❌ Invalid choice. Aborting.');
         process.exit(1);
+      }
     }
 
     console.log(`\n✅ Publishing version: ${newVersion}\n`);
@@ -100,7 +110,7 @@ async function publish() {
     const addKeywords = await rl.question('➕ Add keywords for discoverability? (y/N): ');
     if (addKeywords.toLowerCase() === 'y') {
       const keywordInput = await rl.question('Enter keywords (comma-separated): ');
-      keywords = keywordInput.split(',').map(k => k.trim()).filter(k => k);
+      keywords = keywordInput.split(',').map(k => k.trim()).filter(Boolean);
     }
 
     // Ask for tags (categories)
@@ -109,7 +119,7 @@ async function publish() {
     if (addTags.toLowerCase() === 'y') {
       console.log('Suggested categories: developer-tools, productivity, devops, security, web-dev, data-science');
       const tagInput = await rl.question('Enter tags (comma-separated): ');
-      tags = tagInput.split(',').map(t => t.trim()).filter(t => t);
+      tags = tagInput.split(',').map(t => t.trim()).filter(Boolean);
     }
 
     // Check for README
@@ -181,6 +191,7 @@ async function publish() {
     if (error.response) {
       console.error('Response:', await error.response.text());
     }
+
     process.exit(1);
   } finally {
     rl.close();
@@ -205,7 +216,7 @@ function scanDocsFolder(docsPath) {
       } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdx'))) {
         files.push({
           path: relPath,
-          fullPath: fullPath,
+          fullPath,
         });
       }
     }
@@ -275,7 +286,7 @@ async function uploadPlugin(manifest, token, readmeFile, docsFiles) {
 }
 
 // Run publish
-publish().catch(err => {
-  console.error('Fatal error:', err);
+publish().catch(error => {
+  console.error('Fatal error:', error);
   process.exit(1);
 });
