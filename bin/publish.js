@@ -68,40 +68,42 @@ async function publish() {
     console.log(`   3. Major (${suggestedMajor}) - Breaking changes`);
     console.log('   4. Custom version');
 
-    const versionChoice = await rl.question('\n🔢 Select version increment (1-4): ');
-    let newVersion;
+    const newVersion = currentVersion;
 
-    switch (versionChoice.trim()) {
-      case '1': {
-        newVersion = suggestedPatch;
-        break;
-      }
-
-      case '2': {
-        newVersion = suggestedMinor;
-        break;
-      }
-
-      case '3': {
-        newVersion = suggestedMajor;
-        break;
-      }
-
-      case '4': {
-        newVersion = await rl.question('Enter custom version (e.g., 1.0.0-beta.1): ');
-        if (!semver.valid(newVersion)) {
-          console.error('❌ Invalid semantic version. Aborting.');
-          process.exit(1);
-        }
-
-        break;
-      }
-
-      default: {
-        console.error('❌ Invalid choice. Aborting.');
-        process.exit(1);
-      }
-    }
+    // const versionChoice = await rl.question('\n🔢 Select version increment (1-4): ');
+    // let newVersion;
+    //
+    // switch (versionChoice.trim()) {
+    //   case '1': {
+    //     newVersion = suggestedPatch;
+    //     break;
+    //   }
+    //
+    //   case '2': {
+    //     newVersion = suggestedMinor;
+    //     break;
+    //   }
+    //
+    //   case '3': {
+    //     newVersion = suggestedMajor;
+    //     break;
+    //   }
+    //
+    //   case '4': {
+    //     newVersion = await rl.question('Enter custom version (e.g., 1.0.0-beta.1): ');
+    //     if (!semver.valid(newVersion)) {
+    //       console.error('❌ Invalid semantic version. Aborting.');
+    //       process.exit(1);
+    //     }
+    //
+    //     break;
+    //   }
+    //
+    //   default: {
+    //     console.error('❌ Invalid choice. Aborting.');
+    //     process.exit(1);
+    //   }
+    // }
 
     console.log(`\n✅ Publishing version: ${newVersion}\n`);
 
@@ -131,11 +133,11 @@ async function publish() {
       console.warn('⚠️  Warning: No README.md found. Consider adding one.');
     }
 
-    // Check for /docs folder
+    // Check for /dist/docs folder
     let docsFiles = [];
-    if (fs.existsSync('./docs')) {
-      console.log('📚 /docs folder found');
-      docsFiles = scanDocsFolder('./docs');
+    if (fs.existsSync('./dist/docs')) {
+      console.log('📚 /dist/docs folder found');
+      docsFiles = scanDocsFolder('./dist/docs');
       console.log(`   Found ${docsFiles.length} documentation files`);
     }
 
@@ -236,7 +238,7 @@ function getApiToken() {
     }
 
     const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-    return credentials.apiToken;
+    return credentials.accessToken;
   } catch {
     return null;
   }

@@ -74,7 +74,7 @@ function sendMessageAndAwaitResponse(process, message) {
   });
 }
 
-async function buildDocumentation() {
+async function findDocumentation() {
   console.log('Building documentation...');
 
   const results = new Map();
@@ -210,7 +210,7 @@ async function main() {
 
     console.log('Successfully wrote schema to ./dist/schemas.json');
 
-    const documentationMap = await buildDocumentation();
+    const documentationMap = await findDocumentation();
     console.log('Documentation Map:', documentationMap);
 
     // Build reverse map for resource type -> documentation path
