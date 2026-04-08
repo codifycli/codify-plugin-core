@@ -165,9 +165,18 @@ describe('Resource options parser tests', () => {
   it('Can handle a zod schema', () => {
 
     const schema = z.object({
-      propA: z.string(),
-      repository: z.string(),
-    })
+      plugins: z
+        .array(z.string())
+        .describe(
+          'Asdf plugins to install. See: https://github.com/asdf-community for a full list'
+        )
+        .optional(),
+      repository: z
+        .string()
+        .describe('Remote repository to clone repo from. Equivalent to remote and only one should be specified')
+        .optional(),
+    }).meta({ $comment: 'https://codifycli.com/docs/resources/asdf/asdf' })
+      .describe('This is my test resource');
 
     const option: ResourceSettings<z.infer<typeof schema>> = {
       id: 'typeId',
@@ -180,7 +189,29 @@ describe('Resource options parser tests', () => {
       }
     }
 
-    console.log(new ParsedResourceSettings(option))
+    expect((new ParsedResourceSettings(option)).schema).toMatchObject({
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        plugins: {
+          description: 'Asdf plugins to install. See: https://github.com/asdf-community for a full list',
+          type: 'array',
+          items: {
+            "type": "string",
+          },
+        },
+        repository: {
+          description: 'Remote repository to clone repo from. Equivalent to remote and only one should be specified',
+          type: 'string'
+        }
+      },
+      additionalProperties: false,
+      title: 'typeId',
+      description: 'This is my test resource',
+      '$comment': 'https://codifycli.com/docs/resources/asdf/asdf'
+    })
+
+    console.log((new ParsedResourceSettings(option)).schema)
 
   })
 })

@@ -1,6 +1,6 @@
 import { LinuxDistro, OS, StringIndexedObject } from '@codifycli/schemas';
 import { JSONSchemaType } from 'ajv';
-import { ZodObject, z } from 'zod';
+import { z, ZodObject } from 'zod';
 
 import { StatefulParameterController } from '../stateful-parameter/stateful-parameter-controller.js';
 import {
@@ -8,12 +8,12 @@ import {
   DefaultParameterSetting,
   InputTransformation,
   ParameterSetting,
-  ResourceSettings,
-  StatefulParameterSetting,
   resolveElementEqualsFn,
   resolveEqualsFn,
   resolveMatcher,
-  resolveParameterTransformFn
+  resolveParameterTransformFn,
+  ResourceSettings,
+  StatefulParameterSetting
 } from './resource-settings.js';
 
 export interface ParsedStatefulParameterSetting extends DefaultParameterSetting {
@@ -69,8 +69,11 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
         ? z.toJSONSchema(schema.strict(), {
           target: 'draft-7',
           override(ctx) {
-            ctx.jsonSchema.title = settings.id;
-            ctx.jsonSchema.description = settings.description ?? `${settings.id} resource. Can be used to manage ${settings.id}`;
+            if (ctx.path.length === 0) {
+              ctx.jsonSchema.title = settings.id;
+              ctx.jsonSchema.description = schema.description ?? settings.description ?? `${settings.id} resource. Can be used to manage ${settings.id}`;
+              ctx.jsonSchema.$comment = (schema.meta() as Record<string, string | undefined>).$comment;
+            }
           }
         }) as JSONSchemaType<T>
         : schema;
