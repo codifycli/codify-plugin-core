@@ -11,7 +11,8 @@ import {
   PlanRequestData,
   PlanResponseData,
   ResourceConfig,
-  ResourceJson, SetVerbosityRequestData,
+  ResourceJson,
+  SetVerbosityRequestData,
   ValidateRequestData,
   ValidateResponseData
 } from '@codifycli/schemas';
@@ -127,7 +128,9 @@ export class Plugin {
       operatingSystems: resource.settings.operatingSystems,
       linuxDistros: resource.settings.linuxDistros,
       sensitiveParameters,
-      allowMultiple
+      allowMultiple,
+      defaultConfig: resource.settings.defaultConfig,
+      exampleConfigs: resource.settings.exampleConfigs,
     }
   }
 

@@ -6,6 +6,7 @@ import { StatefulParameterController } from '../stateful-parameter/stateful-para
 import {
   ArrayParameterSetting,
   DefaultParameterSetting,
+  ExampleConfigs,
   InputTransformation,
   ParameterSetting,
   resolveElementEqualsFn,
@@ -55,6 +56,9 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
   linuxDistros?: Array<LinuxDistro>;
 
   isSensitive?: boolean;
+
+  defaultConfig!: Partial<T>;
+  exampleConfigs!: ExampleConfigs;
 
   private settings: ResourceSettings<T>;
 

@@ -15,6 +15,17 @@ import {
 import { ParsedResourceSettings } from './parsed-resource-settings.js';
 import { RefreshContext } from './resource.js';
 
+export interface ExampleConfig extends Record<string, unknown> {
+  title: string;
+  configs: Array<Record<string, unknown>>;
+  description?: string;
+}
+
+export interface ExampleConfigs {
+  example1?: ExampleConfig;
+  example2?: ExampleConfig;
+}
+
 export interface InputTransformation {
   to: (input: any) => Promise<any> | any;
   from: (current: any, original: any) => Promise<any> | any;
@@ -194,6 +205,19 @@ export interface ResourceSettings<T extends StringIndexedObject> {
      */
     refreshMapper?: (input: Partial<T>, context: RefreshContext<T>) => Partial<T>;
   }
+
+  /**
+   * Represents the default config that is added to the editor with prefilled properties. For some resources
+   *
+   * @type {Partial<T>}
+   */
+  defaultConfig?: Partial<T>
+
+  /**
+   * A collection of example configs used to give users an idea on how to use this specific resource. These examples
+   * don't need to be limited to just the current resource. They can include other resources as well
+   */
+  exampleConfigs?: ExampleConfigs
 }
 
 /**
