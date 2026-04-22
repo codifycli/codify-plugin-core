@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { SpawnStatus, getPty } from '../pty/index.js';
+import { getPty, SpawnStatus } from '../pty/index.js';
 
 export function isDebug(): boolean {
   return process.env.DEBUG != null && process.env.DEBUG.includes('codify'); // TODO: replace with debug library
@@ -73,7 +73,7 @@ export const Utils = {
   },
 
   getShell(): Shell | undefined {
-    const shell = process.env.SHELL || '';
+    const shell = process.env.SHELL || os.userInfo().shell || '';
 
     if (shell.endsWith('bash')) {
       return Shell.BASH
@@ -108,7 +108,7 @@ export const Utils = {
   },
 
   getShellRcFiles(): string[] {
-    const shell = process.env.SHELL || '';
+    const shell = process.env.SHELL || os.userInfo().shell || '';
     const homeDir = os.homedir();
 
     if (shell.endsWith('bash')) {
@@ -209,9 +209,9 @@ Brew can be installed using Codify:
       const isAptInstalled = await $.spawnSafe('which apt');
       if (isAptInstalled.status === SpawnStatus.SUCCESS) {
         await $.spawn('apt-get update', { requiresRoot: true });
-        const { status, data } = await $.spawnSafe(`apt-get -y install ${packageName}`, {
+        const { status, data } = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${packageName}`, {
           requiresRoot: true,
-          env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
+          env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a',  }
         });
 
         if (status === SpawnStatus.ERROR && data.includes('E: dpkg was interrupted, you must manually run \'sudo dpkg --configure -a\' to correct the problem.')) {
@@ -265,7 +265,7 @@ Brew can be installed using Codify:
     if (Utils.isLinux()) {
       const isAptInstalled = await $.spawnSafe('which apt');
       if (isAptInstalled.status === SpawnStatus.SUCCESS) {
-        const { status } = await $.spawnSafe(`apt-get autoremove -y --purge ${packageName}`, {
+        const { status } = await $.spawnSafe(`apt-get -qq autoremove -y -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 --purge ${packageName}`, {
           requiresRoot: true,
           env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
         });
