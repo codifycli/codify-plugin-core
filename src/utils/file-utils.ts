@@ -26,6 +26,8 @@ export class FileUtils {
   }
 
   static async addToShellRc(line: string): Promise<void> {
+    await FileUtils.createShellRcIfNotExists();
+
     const lineToInsert = addLeadingSpacer(
       addTrailingSpacer(line)
     );
@@ -46,6 +48,8 @@ export class FileUtils {
   }
 
   static async addAllToShellRc(lines: string[]): Promise<void> {
+    await FileUtils.createShellRcIfNotExists();
+
     const formattedLines = '\n' + lines.join('\n') + '\n';
     const shellRc = Utils.getPrimaryShellRc();
 
@@ -62,6 +66,8 @@ ${lines.join('\n')}`)
    * @param prepend - Whether to prepend the path to the existing PATH variable.
    */
   static async addPathToShellRc(value: string, prepend: boolean): Promise<void> {
+    await FileUtils.createShellRcIfNotExists();
+
     if (await Utils.isDirectoryOnPath(value)) {
       return;
     }
@@ -226,6 +232,13 @@ ${lines.join('\n')}`)
       if (counter > 2) {
         return counter;
       }
+    }
+  }
+
+  static async createShellRcIfNotExists(): Promise<void> {
+    const shellRc = Utils.getPrimaryShellRc();
+    if (!await FileUtils.fileExists(shellRc)) {
+      await fs.writeFile(shellRc, '', 'utf8');
     }
   }
 }
