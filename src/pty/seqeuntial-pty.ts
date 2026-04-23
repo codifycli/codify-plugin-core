@@ -100,10 +100,12 @@ export class SequentialPty implements IPty {
       mPty.onExit((result) => {
         process.stdout.off('resize', resizeListener);
 
+        const raw = stripAnsi(output.join('')).replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+        
         resolve({
           status: result.exitCode === 0 ? SpawnStatus.SUCCESS : SpawnStatus.ERROR,
           exitCode: result.exitCode,
-          data: stripAnsi(output.join('\n').trim()),
+          data: raw,
         })
       })
     })

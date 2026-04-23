@@ -174,9 +174,11 @@ export class Plugin {
         throw new Error(`Resource type not found: ${core.type}`);
       }
 
-      const validation = await this.resourceControllers
-        .get(core.type)!
-        .validate(core, parameters);
+      const validation = await ptyLocalStorage.run(this.planPty, () =>
+        this.resourceControllers
+          .get(core.type)!
+          .validate(core, parameters)
+      );
 
       validationResults.push(validation);
     }
