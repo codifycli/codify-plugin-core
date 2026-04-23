@@ -35,7 +35,7 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@codifycli/schemas": "1.1.0-beta3",
+    "@codifycli/schemas": "1.1.0-beta4",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
     "ajv": "^8.18.0",
     "ajv-formats": "^2.1.1",
