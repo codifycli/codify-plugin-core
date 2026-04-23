@@ -1,6 +1,6 @@
 {
   "name": "@codifycli/plugin-core",
-  "version": "1.1.0-beta10",
+  "version": "1.1.0-beta12",
   "description": "TypeScript library for building Codify plugins to manage system resources (applications, CLI tools, settings) through infrastructure-as-code",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

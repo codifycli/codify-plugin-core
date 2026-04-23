@@ -9,6 +9,7 @@ describe('Utils tests', () => {
       name: 'name',
       dependsOn: ['a', 'b', 'c'],
       os: ['linux'],
+      distro: ['debian-based'],
       propA: 'propA',
       propB: 'propB',
       propC: 'propC',
