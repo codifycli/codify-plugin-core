@@ -94,6 +94,7 @@ export class ChangeSet<T extends StringIndexedObject> {
 
   static destroy<T extends StringIndexedObject>(current: Partial<T>, settings?: ResourceSettings<T>): ChangeSet<T> {
     const parameterChanges = Object.entries(current)
+      .filter(([k]) => !settings?.parameterSettings?.[k]?.setting)
       .map(([k, v]) => ({
         name: k,
         operation: ParameterOperation.REMOVE,

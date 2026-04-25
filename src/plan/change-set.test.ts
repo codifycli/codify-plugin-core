@@ -107,6 +107,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: { type: 'array' }
       }
@@ -129,6 +130,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: { type: 'array' }
       }
@@ -152,6 +154,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: { canModify: true }
       }
@@ -176,6 +179,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: { canModify: true },
         propB: { canModify: true }
@@ -196,6 +200,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: { type: 'array' }
       },
@@ -213,6 +218,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: { type: 'array' }
       },
@@ -229,6 +235,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: { type: 'array' }
       },
@@ -245,6 +252,7 @@ describe('Change set tests', () => {
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: {
           type: 'array',
@@ -259,12 +267,50 @@ describe('Change set tests', () => {
     expect(result.parameterChanges[0].operation).to.eq(ParameterOperation.MODIFY);
   })
 
+  it('excludes setting parameters from destroy change set', () => {
+    const settings = {
+      id: 'type',
+      operatingSystems: [],
+      parameterSettings: {
+        propA: {},
+        propB: { setting: true },
+      },
+    };
+
+    const cs = ChangeSet.destroy({ propA: 'val', propB: true }, settings as any);
+    expect(cs.parameterChanges.length).to.eq(1);
+    expect(cs.parameterChanges[0].name).to.eq('propA');
+    expect(cs.parameterChanges[0].operation).to.eq(ParameterOperation.REMOVE);
+    expect(cs.operation).to.eq(ResourceOperation.DESTROY);
+  })
+
+  it('excludes multiple setting parameters from destroy change set', () => {
+    const settings = {
+      id: 'type',
+      operatingSystems: [],
+      parameterSettings: {
+        skipAlreadyInstalledCasks: { type: 'boolean', default: true, setting: true },
+        onlyPlanUserInstalled: { type: 'boolean', default: true, setting: true },
+        directory: { type: 'directory' },
+      },
+    };
+
+    const cs = ChangeSet.destroy(
+      { skipAlreadyInstalledCasks: true, onlyPlanUserInstalled: true, directory: '/opt/homebrew' },
+      settings as any
+    );
+    expect(cs.parameterChanges.length).to.eq(1);
+    expect(cs.parameterChanges[0].name).to.eq('directory');
+    expect(cs.operation).to.eq(ResourceOperation.DESTROY);
+  })
+
   it('correctly determines array equality 5', () => {
     const arrA = [{ key1: 'b' }, { key1: 'a' }, { key1: 'a' }];
     const arrB = [{ key1: 'a' }, { key1: 'a' }, { key1: 'b' }];
 
     const parameterSettings = new ParsedResourceSettings({
       id: 'type',
+      operatingSystems: [],
       parameterSettings: {
         propA: {
           type: 'array',

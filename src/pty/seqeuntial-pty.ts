@@ -46,7 +46,7 @@ export class SequentialPty implements IPty {
     }
 
     // If sudo is required, we must delegate to the main codify process.
-    if (options?.stdin || options?.requiresRoot) {
+    if (options?.stdin || options?.requiresRoot || options?.requiresSudoAskpass) {
       return this.externalSpawn(cmd, options);
     }
 

@@ -34,6 +34,7 @@ export interface SpawnOptions {
   env?: Record<string, unknown>;
   interactive?: boolean;
   requiresRoot?: boolean;
+  requiresSudoAskpass?: boolean;
   stdin?: boolean;
   disableWrapping?: boolean;
 }

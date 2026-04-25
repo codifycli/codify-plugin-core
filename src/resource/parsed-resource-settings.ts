@@ -76,7 +76,7 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
             if (ctx.path.length === 0) {
               ctx.jsonSchema.title = settings.id;
               ctx.jsonSchema.description = schema.description ?? settings.description ?? `${settings.id} resource. Can be used to manage ${settings.id}`;
-              ctx.jsonSchema.$comment = (schema.meta() as Record<string, string | undefined>).$comment;
+              ctx.jsonSchema.$comment = (schema.meta() as Record<string, string | undefined> | undefined)?.$comment;
             }
           }
         }) as JSONSchemaType<T>
