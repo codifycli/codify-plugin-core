@@ -31,15 +31,22 @@ import { VerbosityLevel } from '../utils/verbosity-level.js';
 export class Plugin {
   planStorage: Map<string, Plan<any>>;
   planPty = new BackgroundPty();
+  minSupportedCliVersion: string | undefined;
 
   constructor(
     public name: string,
-    public resourceControllers: Map<string, ResourceController<ResourceConfig>>
+    public resourceControllers: Map<string, ResourceController<ResourceConfig>>,
+    options?: { minSupportedCliVersion?: string }
   ) {
     this.planStorage = new Map();
+    this.minSupportedCliVersion = options?.minSupportedCliVersion;
   }
 
-  static create(name: string, resources: Resource<any>[]) {
+  static create(
+    name: string,
+    resources: Resource<any>[],
+    options?: { minSupportedCliVersion?: string }
+  ) {
     const controllers = resources
       .map((resource) => new ResourceController(resource))
 
@@ -47,7 +54,7 @@ export class Plugin {
       controllers.map((r) => [r.typeId, r] as const)
     );
 
-    return new Plugin(name, controllersMap);
+    return new Plugin(name, controllersMap, options);
   }
 
   async initialize(data: InitializeRequestData): Promise<InitializeResponseData> {
@@ -60,6 +67,7 @@ export class Plugin {
     }
 
     return {
+      minSupportedCliVersion: this.minSupportedCliVersion,
       resourceDefinitions: [...this.resourceControllers.values()]
         .map((r) => {
           const sensitiveParameters = Object.entries(r.settings.parameterSettings ?? {})
