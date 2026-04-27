@@ -1,6 +1,7 @@
 import {
   ApplyRequestDataSchema,
   EmptyResponseDataSchema,
+  ErrorCode,
   GetResourceInfoRequestDataSchema,
   GetResourceInfoResponseDataSchema,
   ImportRequestDataSchema,
@@ -24,6 +25,7 @@ import {
 import { Ajv, SchemaObject, ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
 
+import { ApplyValidationError } from '../common/errors.js';
 import { SudoError } from '../errors.js';
 import { Plugin } from '../plugin/plugin.js';
 
@@ -168,13 +170,29 @@ export class MessageHandler {
       })
     }
 
+    if (e instanceof ApplyValidationError) {
+      return process.send?.({
+        cmd,
+        // @ts-expect-error TS2239
+        requestId: message.requestId || undefined,
+        data: {
+          errorCode: ErrorCode.APPLY_VALIDATION,
+          plan: e.plan.toResponse(),
+        },
+        status: MessageStatus.ERROR,
+      });
+    }
+
     const isDebug = process.env.DEBUG?.includes('*') ?? false;
 
     process.send?.({
       cmd,
       // @ts-expect-error TS2239
       requestId: message.requestId || undefined,
-      data: isDebug ? e.stack : e.message,
+      data: {
+        errorCode: ErrorCode.UNKNOWN,
+        message: isDebug ? (e.stack ?? e.message) : e.message,
+      },
       status: MessageStatus.ERROR,
     })
   }
