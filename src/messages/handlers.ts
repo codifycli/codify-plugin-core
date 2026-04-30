@@ -1,7 +1,6 @@
 import {
   ApplyRequestDataSchema,
   EmptyResponseDataSchema,
-  ErrorCode,
   GetResourceInfoRequestDataSchema,
   GetResourceInfoResponseDataSchema,
   ImportRequestDataSchema,
@@ -17,6 +16,7 @@ import {
   MessageStatus,
   PlanRequestDataSchema,
   PlanResponseDataSchema,
+  PluginErrorData,
   ResourceSchema,
   SetVerbosityRequestDataSchema,
   ValidateRequestDataSchema,
@@ -159,41 +159,31 @@ export class MessageHandler {
 
     // @ts-expect-error TS2239
     const cmd = message.cmd + '_Response';
+    // @ts-expect-error TS2239
+    const requestId = message.requestId || undefined;
+
+    let errorPayload: PluginErrorData;
 
     if (e instanceof SudoError) {
-      return process.send?.({
-        cmd,
-        // @ts-expect-error TS2239
-        requestId: message.requestId || undefined,
-        data: `Plugin: '${this.plugin.name}'. Forbidden usage of sudo for command '${e.command}'. Please contact the plugin developer to fix this.`,
-        status: MessageStatus.ERROR,
-      })
-    }
-
-    if (e instanceof ApplyValidationError) {
-      return process.send?.({
-        cmd,
-        // @ts-expect-error TS2239
-        requestId: message.requestId || undefined,
-        data: {
-          errorCode: ErrorCode.APPLY_VALIDATION,
-          plan: e.plan.toResponse(),
-        },
-        status: MessageStatus.ERROR,
-      });
-    }
-
-    const isDebug = process.env.DEBUG?.includes('*') ?? false;
-
-    process.send?.({
-      cmd,
-      // @ts-expect-error TS2239
-      requestId: message.requestId || undefined,
-      data: {
-        errorCode: ErrorCode.UNKNOWN,
+      errorPayload = {
+        errorType: 'sudo_error',
+        message: `Plugin: '${this.plugin.name}'. Forbidden usage of sudo for command '${e.command}'. Please contact the plugin developer to fix this.`,
+        data: { command: e.command, pluginName: this.plugin.name },
+      };
+    } else if (e instanceof ApplyValidationError) {
+      errorPayload = {
+        errorType: 'apply_validation',
+        message: e.message,
+        data: { plan: e.plan.toResponse() },
+      };
+    } else {
+      const isDebug = process.env.DEBUG?.includes('*') ?? false;
+      errorPayload = {
+        errorType: 'unknown',
         message: isDebug ? (e.stack ?? e.message) : e.message,
-      },
-      status: MessageStatus.ERROR,
-    })
+      };
+    }
+
+    process.send?.({ cmd, requestId, data: errorPayload, status: MessageStatus.ERROR });
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@codifycli/plugin-core",
-  "version": "1.1.0-beta18",
+  "version": "1.1.0-beta20",
   "description": "TypeScript library for building Codify plugins to manage system resources (applications, CLI tools, settings) through infrastructure-as-code",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -35,7 +35,7 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@codifycli/schemas": "^1.1.0-beta7",
+    "@codifycli/schemas": "^1.1.0-beta8",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
     "ajv": "^8.18.0",
     "ajv-formats": "^2.1.1",

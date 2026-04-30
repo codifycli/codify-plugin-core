@@ -268,7 +268,7 @@ export class Plugin {
     })
 
     if (validationPlan.requiresChanges()) {
-      throw new ApplyValidationError(plan);
+      throw new ApplyValidationError(validationPlan);
     }
   }
 
