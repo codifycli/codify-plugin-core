@@ -250,7 +250,11 @@ export class Plugin {
       throw new Error('Malformed plan with resource that cannot be found');
     }
 
-    await ptyLocalStorage.run(new SequentialPty(), async () => resource.apply(plan))
+    let applyLogs: string[] = [];
+    await ptyLocalStorage.run(new SequentialPty(), async () => {
+      await resource.apply(plan);
+      applyLogs = getPty().getLogs();
+    });
 
     // Validate using desired/desired. If the apply was successful, no changes should be reported back.
     // Default back desired back to current if it is not defined (for destroys only)
@@ -268,7 +272,7 @@ export class Plugin {
     })
 
     if (validationPlan.requiresChanges()) {
-      throw new ApplyValidationError(validationPlan);
+      throw new ApplyValidationError(validationPlan, applyLogs);
     }
   }
 

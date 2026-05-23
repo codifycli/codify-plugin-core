@@ -44,8 +44,11 @@ export class SpawnError extends Error {
   cmd: string;
   exitCode: number;
 
-  constructor(cmd: string, exitCode: number, data: string) {
-    super(`Spawn Error: on command "${cmd}" with exit code: ${exitCode}\nOutput:\n${data}`);
+  constructor(cmd: string, exitCode: number, data: string, logs?: string[]) {
+    const logSection = logs?.length
+      ? `\nLast logs:\n${logs.join('\n')}`
+      : '';
+    super(`Spawn Error: on command "${cmd}" with exit code: ${exitCode}\nOutput:\n${data}${logSection}`);
 
     this.data = data;
     this.cmd = cmd;
@@ -60,6 +63,8 @@ export interface IPty {
   spawnSafe(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult>
 
   kill(): Promise<{ exitCode: number, signal?: number | undefined }>
+
+  getLogs(): string[]
 }
 
 export function getPty(): IPty {

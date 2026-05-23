@@ -174,7 +174,7 @@ export class MessageHandler {
       errorPayload = {
         errorType: 'apply_validation',
         message: e.message,
-        data: { plan: e.plan.toResponse() },
+        data: { plan: e.plan.toResponse(), logs: e.logs },
       };
     } else {
       const isDebug = process.env.DEBUG?.includes('*') ?? false;
