@@ -225,7 +225,24 @@ Brew can be installed using Codify:
         }
 
         if (status === SpawnStatus.ERROR) {
-          throw new Error(`Failed to install package ${packageName} via apt: ${data}`);
+          // Attempt to fix broken dependencies then retry
+          const fixResult = await $.spawnSafe('apt-get install -f -y -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0', {
+            requiresRoot: true,
+            env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
+          });
+
+          if (fixResult.status === SpawnStatus.ERROR) {
+            throw new Error(`Failed to install package ${packageName} via apt: ${data}`);
+          }
+
+          const retryResult = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${packageName}`, {
+            requiresRoot: true,
+            env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
+          });
+
+          if (retryResult.status === SpawnStatus.ERROR) {
+            throw new Error(`Failed to install package ${packageName} via apt after fixing dependencies: ${retryResult.data}`);
+          }
         }
       }
 
