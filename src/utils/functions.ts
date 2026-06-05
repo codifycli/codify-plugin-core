@@ -10,10 +10,11 @@ export function splitUserConfig<T extends StringIndexedObject>(
     ...(config.name ? { name: config.name } : {}),
     ...(config.dependsOn ? { dependsOn: config.dependsOn } : {}),
     ...(config.os ? { os: config.os } : {}),
+    ...(config.distro ? { distro: config.distro } : {})
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { type, name, dependsOn, os, ...parameters } = config;
+  const { type, name, dependsOn, os, distro, ...parameters } = config;
 
   return {
     parameters: parameters as T,

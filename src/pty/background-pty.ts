@@ -148,6 +148,10 @@ export class BackgroundPty implements IPty {
     })
   }
 
+  getLogs(): string[] {
+    return [];
+  }
+
   private getDefaultShell(): string {
     return process.env.SHELL!;
   }

@@ -28,11 +28,26 @@ const validateSudoRequestResponse = ajv.compile(CommandRequestResponseDataSchema
  * without a tty (or even a stdin) attached so interactive commands will not work.
  */
 export class SequentialPty implements IPty {
+  private logBuffer: string[] = [];
+  private static readonly MAX_LOG_LINES = 30;
+
+  getLogs(): string[] {
+    return [...this.logBuffer];
+  }
+
+  private appendLog(data: string): void {
+    const lines = data.split('\n');
+    this.logBuffer.push(...lines);
+    if (this.logBuffer.length > SequentialPty.MAX_LOG_LINES) {
+      this.logBuffer = this.logBuffer.slice(-SequentialPty.MAX_LOG_LINES);
+    }
+  }
+
   async spawn(cmd: string | string[], options?: SpawnOptions): Promise<SpawnResult> {
     const spawnResult = await this.spawnSafe(cmd, options);
 
     if (spawnResult.status !== 'success') {
-      throw new SpawnError(Array.isArray(cmd) ? cmd.join('\n') : cmd, spawnResult.exitCode, spawnResult.data);
+      throw new SpawnError(Array.isArray(cmd) ? cmd.join('\n') : cmd, spawnResult.exitCode, spawnResult.data, this.logBuffer);
     }
 
     return spawnResult;
@@ -46,11 +61,13 @@ export class SequentialPty implements IPty {
     }
 
     // If sudo is required, we must delegate to the main codify process.
-    if (options?.stdin || options?.requiresRoot) {
+    if (options?.stdin || options?.requiresRoot || options?.requiresSudoAskpass) {
       return this.externalSpawn(cmd, options);
     }
 
-    console.log(`Running command: ${Array.isArray(cmd) ? cmd.join('\\\n') : cmd}` + (options?.cwd ? `(${options?.cwd})` : ''))
+    const cmdLine = `Running command: ${Array.isArray(cmd) ? cmd.join('\\\n') : cmd}` + (options?.cwd ? `(${options?.cwd})` : '');
+    console.log(cmdLine);
+    this.appendLog(cmdLine);
 
     return new Promise((resolve) => {
       const output: string[] = [];
@@ -87,6 +104,7 @@ export class SequentialPty implements IPty {
         }
 
         output.push(data.toString());
+        this.appendLog(data.toString());
       })
 
       const resizeListener = () => {
@@ -100,10 +118,12 @@ export class SequentialPty implements IPty {
       mPty.onExit((result) => {
         process.stdout.off('resize', resizeListener);
 
+        const raw = stripAnsi(output.join('')).replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+        
         resolve({
           status: result.exitCode === 0 ? SpawnStatus.SUCCESS : SpawnStatus.ERROR,
           exitCode: result.exitCode,
-          data: stripAnsi(output.join('\n').trim()),
+          data: raw,
         })
       })
     })
