@@ -1,4 +1,10 @@
-import { IpcMessageV2, IpcMessageV2Schema, MessageCmd, PressKeyToContinueRequestData } from '@codifycli/schemas';
+import {
+  ApplyNoteRequestData,
+  IpcMessageV2,
+  IpcMessageV2Schema,
+  MessageCmd,
+  PressKeyToContinueRequestData
+} from '@codifycli/schemas';
 import { Ajv } from 'ajv';
 import { nanoid } from 'nanoid';
 
@@ -19,6 +25,20 @@ class CodifyCliSenderImpl {
         promptMessage: message,
       }
     })
+  }
+
+  async sendApplyNote(message: string, resourceType?: string): Promise<void> {
+    if (!process.send || !process.connected) {
+      return;
+    }
+
+    await this.sendAndWaitForResponse(<IpcMessageV2>{
+      cmd: MessageCmd.APPLY_NOTE_REQUEST,
+      data: <ApplyNoteRequestData>{
+        message,
+        ...(resourceType && { resourceType }),
+      }
+    });
   }
 
   async getCodifyCliCredentials(): Promise<string> {

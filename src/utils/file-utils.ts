@@ -4,6 +4,8 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
+import { ApplyNotes } from '../common/apply-notes.js';
+import { CodifyCliSender } from '../messages/sender.js';
 import { Utils } from './index.js';
 
 const SPACE_REGEX = /^\s*$/
@@ -26,11 +28,14 @@ export class FileUtils {
   }
 
   static async addToShellRc(line: string): Promise<void> {
+    await FileUtils.createShellRcIfNotExists();
+
     const lineToInsert = addLeadingSpacer(
       addTrailingSpacer(line)
     );
 
     await fs.appendFile(Utils.getPrimaryShellRc(), lineToInsert)
+    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
 
     function addLeadingSpacer(line: string): string {
       return line.startsWith('\n')
@@ -46,6 +51,8 @@ export class FileUtils {
   }
 
   static async addAllToShellRc(lines: string[]): Promise<void> {
+    await FileUtils.createShellRcIfNotExists();
+
     const formattedLines = '\n' + lines.join('\n') + '\n';
     const shellRc = Utils.getPrimaryShellRc();
 
@@ -53,6 +60,7 @@ export class FileUtils {
 ${lines.join('\n')}`)
 
     await fs.appendFile(shellRc, formattedLines)
+    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
   }
 
   /**
@@ -62,6 +70,8 @@ ${lines.join('\n')}`)
    * @param prepend - Whether to prepend the path to the existing PATH variable.
    */
   static async addPathToShellRc(value: string, prepend: boolean): Promise<void> {
+    await FileUtils.createShellRcIfNotExists();
+
     if (await Utils.isDirectoryOnPath(value)) {
       return;
     }
@@ -71,10 +81,11 @@ ${lines.join('\n')}`)
 
     if (prepend) {
       await fs.appendFile(shellRc, `\nexport PATH=$PATH:${value};`, { encoding: 'utf8' });
-      return;
+    } else {
+      await fs.appendFile(shellRc, `\nexport PATH=${value}:$PATH;`, { encoding: 'utf8' });
     }
 
-    await fs.appendFile(shellRc, `\nexport PATH=${value}:$PATH;`, { encoding: 'utf8' });
+    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
   }
 
   static async removeFromFile(filePath: string, search: string): Promise<void> {
@@ -226,6 +237,13 @@ ${lines.join('\n')}`)
       if (counter > 2) {
         return counter;
       }
+    }
+  }
+
+  static async createShellRcIfNotExists(): Promise<void> {
+    const shellRc = Utils.getPrimaryShellRc();
+    if (!await FileUtils.fileExists(shellRc)) {
+      await fs.writeFile(shellRc, '', 'utf8');
     }
   }
 }

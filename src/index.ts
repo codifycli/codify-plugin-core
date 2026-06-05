@@ -1,6 +1,7 @@
 import { MessageHandler } from './messages/handlers.js';
 import { Plugin } from './plugin/plugin.js';
 
+export * from './common/apply-notes.js'
 export * from './errors.js'
 export * from './messages/sender.js'
 export * from './plan/change-set.js'

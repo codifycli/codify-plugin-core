@@ -11,7 +11,8 @@ import {
   PlanRequestData,
   PlanResponseData,
   ResourceConfig,
-  ResourceJson, SetVerbosityRequestData,
+  ResourceJson,
+  SetVerbosityRequestData,
   ValidateRequestData,
   ValidateResponseData
 } from '@codifycli/schemas';
@@ -30,15 +31,22 @@ import { VerbosityLevel } from '../utils/verbosity-level.js';
 export class Plugin {
   planStorage: Map<string, Plan<any>>;
   planPty = new BackgroundPty();
+  minSupportedCliVersion: string | undefined;
 
   constructor(
     public name: string,
-    public resourceControllers: Map<string, ResourceController<ResourceConfig>>
+    public resourceControllers: Map<string, ResourceController<ResourceConfig>>,
+    options?: { minSupportedCliVersion?: string }
   ) {
     this.planStorage = new Map();
+    this.minSupportedCliVersion = options?.minSupportedCliVersion;
   }
 
-  static create(name: string, resources: Resource<any>[]) {
+  static create(
+    name: string,
+    resources: Resource<any>[],
+    options?: { minSupportedCliVersion?: string }
+  ) {
     const controllers = resources
       .map((resource) => new ResourceController(resource))
 
@@ -46,7 +54,7 @@ export class Plugin {
       controllers.map((r) => [r.typeId, r] as const)
     );
 
-    return new Plugin(name, controllersMap);
+    return new Plugin(name, controllersMap, options);
   }
 
   async initialize(data: InitializeRequestData): Promise<InitializeResponseData> {
@@ -59,6 +67,7 @@ export class Plugin {
     }
 
     return {
+      minSupportedCliVersion: this.minSupportedCliVersion,
       resourceDefinitions: [...this.resourceControllers.values()]
         .map((r) => {
           const sensitiveParameters = Object.entries(r.settings.parameterSettings ?? {})
@@ -127,7 +136,9 @@ export class Plugin {
       operatingSystems: resource.settings.operatingSystems,
       linuxDistros: resource.settings.linuxDistros,
       sensitiveParameters,
-      allowMultiple
+      allowMultiple,
+      defaultConfig: resource.settings.defaultConfig,
+      exampleConfigs: resource.settings.exampleConfigs,
     }
   }
 
@@ -171,9 +182,11 @@ export class Plugin {
         throw new Error(`Resource type not found: ${core.type}`);
       }
 
-      const validation = await this.resourceControllers
-        .get(core.type)!
-        .validate(core, parameters);
+      const validation = await ptyLocalStorage.run(this.planPty, () =>
+        this.resourceControllers
+          .get(core.type)!
+          .validate(core, parameters)
+      );
 
       validationResults.push(validation);
     }
@@ -237,7 +250,11 @@ export class Plugin {
       throw new Error('Malformed plan with resource that cannot be found');
     }
 
-    await ptyLocalStorage.run(new SequentialPty(), async () => resource.apply(plan))
+    let applyLogs: string[] = [];
+    await ptyLocalStorage.run(new SequentialPty(), async () => {
+      await resource.apply(plan);
+      applyLogs = getPty().getLogs();
+    });
 
     // Validate using desired/desired. If the apply was successful, no changes should be reported back.
     // Default back desired back to current if it is not defined (for destroys only)
@@ -255,7 +272,7 @@ export class Plugin {
     })
 
     if (validationPlan.requiresChanges()) {
-      throw new ApplyValidationError(plan);
+      throw new ApplyValidationError(validationPlan, applyLogs);
     }
   }
 
