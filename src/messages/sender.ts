@@ -27,12 +27,16 @@ class CodifyCliSenderImpl {
     })
   }
 
-  async sendApplyNote(message: string, resourceType: string): Promise<void> {
+  async sendApplyNote(message: string, resourceType?: string): Promise<void> {
+    if (!process.send || !process.connected) {
+      return;
+    }
+
     await this.sendAndWaitForResponse(<IpcMessageV2>{
       cmd: MessageCmd.APPLY_NOTE_REQUEST,
       data: <ApplyNoteRequestData>{
         message,
-        resourceType,
+        ...(resourceType && { resourceType }),
       }
     });
   }

@@ -4,6 +4,8 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
+import { ApplyNotes } from '../common/apply-notes.js';
+import { CodifyCliSender } from '../messages/sender.js';
 import { Utils } from './index.js';
 
 const SPACE_REGEX = /^\s*$/
@@ -33,6 +35,7 @@ export class FileUtils {
     );
 
     await fs.appendFile(Utils.getPrimaryShellRc(), lineToInsert)
+    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
 
     function addLeadingSpacer(line: string): string {
       return line.startsWith('\n')
@@ -57,6 +60,7 @@ export class FileUtils {
 ${lines.join('\n')}`)
 
     await fs.appendFile(shellRc, formattedLines)
+    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
   }
 
   /**
@@ -77,10 +81,11 @@ ${lines.join('\n')}`)
 
     if (prepend) {
       await fs.appendFile(shellRc, `\nexport PATH=$PATH:${value};`, { encoding: 'utf8' });
-      return;
+    } else {
+      await fs.appendFile(shellRc, `\nexport PATH=${value}:$PATH;`, { encoding: 'utf8' });
     }
 
-    await fs.appendFile(shellRc, `\nexport PATH=${value}:$PATH;`, { encoding: 'utf8' });
+    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
   }
 
   static async removeFromFile(filePath: string, search: string): Promise<void> {
