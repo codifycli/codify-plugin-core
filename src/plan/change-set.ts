@@ -154,13 +154,13 @@ export class ChangeSet<T extends StringIndexedObject> {
   ): ParameterChange<T>[] {
     const parameterChangeSet = new Array<ParameterChange<T>>();
 
-    // Filter out null and undefined values or else the diff below will not work
+    // Filter out null, undefined, [], and {} — all treated as "no value"
     const desired = Object.fromEntries(
-      Object.entries(desiredParameters).filter(([, v]) => v !== null && v !== undefined)
+      Object.entries(desiredParameters).filter(([, v]) => !ChangeSet.isAbsent(v))
     ) as Partial<T>
 
     const current = Object.fromEntries(
-      Object.entries(currentParameters).filter(([, v]) => v !== null && v !== undefined)
+      Object.entries(currentParameters).filter(([, v]) => !ChangeSet.isAbsent(v))
     ) as Partial<T>
 
     for (const k of new Set([...Object.keys(current), ...Object.keys(desired)])) {
@@ -225,6 +225,13 @@ export class ChangeSet<T extends StringIndexedObject> {
     const indexNext = orderOfOperations.indexOf(next);
 
     return orderOfOperations[Math.max(indexPrev, indexNext)];
+  }
+
+  private static isAbsent(v: unknown): boolean {
+    if (v === null || v === undefined) return true;
+    if (Array.isArray(v)) return v.length === 0;
+    if (typeof v === 'object') return Object.keys(v as object).length === 0;
+    return false;
   }
 
   private static isSame(
