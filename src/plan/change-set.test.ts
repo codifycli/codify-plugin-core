@@ -304,6 +304,33 @@ describe('Change set tests', () => {
     expect(cs.operation).to.eq(ResourceOperation.DESTROY);
   })
 
+  it('treats empty objects {} as no-op', () => {
+    const desired = {
+      keyboard: {},
+      dock: {},
+    }
+
+    const current = {
+      keyboard: {},
+      dock: {},
+    }
+
+    const cs = ChangeSet.calculateModification(desired, current);
+    expect(cs.parameterChanges.length).to.eq(0);
+    expect(cs.operation).to.eq(ResourceOperation.NOOP);
+  })
+
+  it('treats empty object {} as absent when current has no value', () => {
+    const desired = {
+      keyboard: {},
+      dock: {},
+    }
+
+    const cs = ChangeSet.calculateModification(desired, {});
+    expect(cs.parameterChanges.length).to.eq(0);
+    expect(cs.operation).to.eq(ResourceOperation.NOOP);
+  })
+
   it('correctly determines array equality 5', () => {
     const arrA = [{ key1: 'b' }, { key1: 'a' }, { key1: 'a' }];
     const arrB = [{ key1: 'a' }, { key1: 'a' }, { key1: 'b' }];
