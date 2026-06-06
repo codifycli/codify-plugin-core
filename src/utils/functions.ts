@@ -43,7 +43,7 @@ export function resolvePathWithVariables(pathWithVariables: string) {
 export function addVariablesToPath(pathWithoutVariables: string) {
   let result = pathWithoutVariables;
   for (const [key, value] of Object.entries(process.env)) {
-    if (!value || !path.isAbsolute(value) || value === '/' || key === 'HOME' || key === 'PATH' || key === 'SHELL' || key === 'PWD') {
+    if (!value || !path.isAbsolute(value) || value === '/' || value === homeDirectory || key === 'HOME' || key === 'PATH' || key === 'SHELL' || key === 'PWD') {
       continue;
     }
 
