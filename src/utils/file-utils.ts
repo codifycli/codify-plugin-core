@@ -35,7 +35,7 @@ export class FileUtils {
     );
 
     await fs.appendFile(Utils.getPrimaryShellRc(), lineToInsert)
-    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
+    CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
 
     function addLeadingSpacer(line: string): string {
       return line.startsWith('\n')
@@ -60,7 +60,7 @@ export class FileUtils {
 ${lines.join('\n')}`)
 
     await fs.appendFile(shellRc, formattedLines)
-    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
+    CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
   }
 
   /**
@@ -85,7 +85,7 @@ ${lines.join('\n')}`)
       await fs.appendFile(shellRc, `\nexport PATH=${value}:$PATH;`, { encoding: 'utf8' });
     }
 
-    await CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
+    CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
   }
 
   static async removeFromFile(filePath: string, search: string): Promise<void> {
