@@ -135,6 +135,9 @@ export class BackgroundPty implements IPty {
       return new Promise(resolve => {
         this.basePty.write(' unset PS1;\n');
         this.basePty.write(' unset PS0;\n')
+        // zsh autocorrect prompts (e.g. "zsh: correct 'config' to '.config' [nyae]?") will hang
+        // the pty waiting for interactive input. Can't be disabled via env var; must unset the options explicitly.
+        this.basePty.write(' unsetopt CORRECT CORRECT_ALL 2>/dev/null; true;\n')
         this.basePty.write(' echo setup complete\\"\n')
 
         const listener = this.basePty.onData((data: string) => {

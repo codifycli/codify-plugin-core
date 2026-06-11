@@ -88,7 +88,11 @@ export class SequentialPty implements IPty {
       const initialCols = options?.disableWrapping ? 10_000 : process.stdout.columns ?? 80
       const initialRows = process.stdout.rows ?? 24;
 
-      const args = options?.interactive ? ['-i', '-c', cmd] : ['-c', cmd]
+      // zsh autocorrect prompts (e.g. "zsh: correct 'config' to '.config' [nyae]?") will hang
+      // the pty waiting for interactive input. Can't be disabled via env var; must unset the options explicitly.
+      const disableAutocorrect = Utils.getShell() === Shell.ZSH ? 'unsetopt CORRECT CORRECT_ALL 2>/dev/null; ' : '';
+      const wrappedCmd = `${disableAutocorrect}${cmd}`;
+      const args = options?.interactive ? ['-i', '-c', wrappedCmd] : ['-c', wrappedCmd]
 
       // Run the command in a pty for interactivity
       const mPty = pty.spawn(this.getDefaultShell(), args, {
