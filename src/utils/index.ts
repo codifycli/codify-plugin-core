@@ -24,6 +24,36 @@ export interface SystemInfo {
   shell: Shell;
 }
 
+export enum PackageManager {
+  BREW = 'brew',
+  APT = 'apt',
+  DNF = 'dnf',
+  YUM = 'yum',
+  PACMAN = 'pacman',
+}
+
+export interface BasePkgMgrOptions {
+  flags?: string[];
+}
+
+export interface BrewOptions extends BasePkgMgrOptions {
+  cask?: boolean;
+  adopt?: boolean;
+}
+
+export interface AptOptions extends BasePkgMgrOptions {}
+export interface DnfOptions extends BasePkgMgrOptions {}
+export interface YumOptions extends BasePkgMgrOptions {}
+export interface PacmanOptions extends BasePkgMgrOptions {}
+
+export type PkgMgrOptionsMap = {
+  [PackageManager.BREW]?: BrewOptions;
+  [PackageManager.APT]?: AptOptions;
+  [PackageManager.DNF]?: DnfOptions;
+  [PackageManager.YUM]?: YumOptions;
+  [PackageManager.PACMAN]?: PacmanOptions;
+};
+
 export const Utils = {
   getUser(): string {
     return os.userInfo().username;
@@ -194,33 +224,50 @@ Brew can be installed using Codify:
   },
 
   /**
-   * Installs a package via the system package manager. This will use Homebrew on macOS and apt on Ubuntu/Debian or dnf on Fedora.
-   * @param packageName
+   * Installs a package via the system package manager. Auto-detects the PM from the OS unless
+   * forcePackageManager is specified. Per-PM options (flags, cask, etc.) can be passed via the
+   * options map.
    */
-  async installViaPkgMgr(packageName: string): Promise<void> {
+  async installViaPkgMgr(
+    packageName: string,
+    options?: PkgMgrOptionsMap,
+    forcePackageManager?: PackageManager,
+  ): Promise<void> {
     const $ = getPty();
 
-    if (Utils.isMacOS()) {
+    const useBrew = forcePackageManager === PackageManager.BREW || (!forcePackageManager && Utils.isMacOS());
+    if (useBrew) {
       await this.assertBrewInstalled();
-      await $.spawn(`brew install ${packageName}`, { interactive: true, env: { HOMEBREW_NO_AUTO_UPDATE: 1 } });
+      const brewOpts = options?.[PackageManager.BREW];
+      const flags: string[] = [];
+      if (brewOpts?.cask || brewOpts?.adopt) flags.push('--cask');
+      if (brewOpts?.adopt) flags.push('--adopt');
+      if (brewOpts?.flags) flags.push(...brewOpts.flags);
+      const flagStr = flags.length > 0 ? `${flags.join(' ')} ` : '';
+      await $.spawn(`brew install ${flagStr}${packageName}`, { interactive: true, env: { HOMEBREW_NO_AUTO_UPDATE: 1, HOMEBREW_NO_ASK: 1 } });
+      return;
     }
 
-    if (Utils.isLinux()) {
+    const useApt = forcePackageManager === PackageManager.APT || (!forcePackageManager && Utils.isLinux());
+    if (useApt) {
+      const aptOpts = options?.[PackageManager.APT];
+      const extraFlags = aptOpts?.flags ?? [];
+
       const isAptInstalled = await $.spawnSafe('which apt');
       if (isAptInstalled.status === SpawnStatus.SUCCESS) {
         await $.spawn('apt-get update', { requiresRoot: true });
-        const { status, data } = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${packageName}`, {
+        const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
+        const { status, data } = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${flagStr}${packageName}`, {
           requiresRoot: true,
-          env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a',  }
+          env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
         });
 
         if (status === SpawnStatus.ERROR && data.includes('E: dpkg was interrupted, you must manually run \'sudo dpkg --configure -a\' to correct the problem.')) {
           await $.spawn('dpkg --configure -a', { requiresRoot: true });
-          await $.spawn(`apt-get -y install ${packageName}`, {
+          await $.spawn(`apt-get -y install ${flagStr}${packageName}`, {
             requiresRoot: true,
             env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
           });
-
           return;
         }
 
@@ -235,7 +282,7 @@ Brew can be installed using Codify:
             throw new Error(`Failed to install package ${packageName} via apt: ${data}`);
           }
 
-          const retryResult = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${packageName}`, {
+          const retryResult = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${flagStr}${packageName}`, {
             requiresRoot: true,
             env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
           });
@@ -244,64 +291,105 @@ Brew can be installed using Codify:
             throw new Error(`Failed to install package ${packageName} via apt after fixing dependencies: ${retryResult.data}`);
           }
         }
+        return;
       }
+    }
 
+    if (forcePackageManager === PackageManager.DNF || !forcePackageManager) {
+      const dnfOpts = options?.[PackageManager.DNF];
+      const extraFlags = dnfOpts?.flags ?? [];
       const isDnfInstalled = await $.spawnSafe('which dnf');
       if (isDnfInstalled.status === SpawnStatus.SUCCESS) {
+        const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
         await $.spawn('dnf update', { requiresRoot: true });
-        await $.spawn(`dnf install ${packageName} -y`, { requiresRoot: true });
+        await $.spawn(`dnf install ${flagStr}${packageName} -y`, { requiresRoot: true });
+        return;
       }
+    }
 
+    if (forcePackageManager === PackageManager.YUM || !forcePackageManager) {
+      const yumOpts = options?.[PackageManager.YUM];
+      const extraFlags = yumOpts?.flags ?? [];
       const isYumInstalled = await $.spawnSafe('which yum');
       if (isYumInstalled.status === SpawnStatus.SUCCESS) {
+        const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
         await $.spawn('yum update', { requiresRoot: true });
-        await $.spawn(`yum install ${packageName} -y`, { requiresRoot: true });
+        await $.spawn(`yum install ${flagStr}${packageName} -y`, { requiresRoot: true });
+        return;
       }
+    }
 
+    if (forcePackageManager === PackageManager.PACMAN || !forcePackageManager) {
+      const pacmanOpts = options?.[PackageManager.PACMAN];
+      const extraFlags = pacmanOpts?.flags ?? [];
       const isPacmanInstalled = await $.spawnSafe('which pacman');
       if (isPacmanInstalled.status === SpawnStatus.SUCCESS) {
+        const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
         await $.spawn('pacman -Syu', { requiresRoot: true });
-        await $.spawn(`pacman -S ${packageName} --noconfirm`, { requiresRoot: true });
+        await $.spawn(`pacman -S ${flagStr}${packageName} --noconfirm`, { requiresRoot: true });
+        return;
       }
-
     }
   },
 
-  async uninstallViaPkgMgr(packageName: string): Promise<boolean> {
+  async uninstallViaPkgMgr(
+    packageName: string,
+    options?: PkgMgrOptionsMap,
+    forcePackageManager?: PackageManager,
+  ): Promise<boolean> {
     const $ = getPty();
 
-    if (Utils.isMacOS()) {
+    const useBrew = forcePackageManager === PackageManager.BREW || (!forcePackageManager && Utils.isMacOS());
+    if (useBrew) {
       await this.assertBrewInstalled();
-      const { status } = await $.spawnSafe(`brew uninstall --zap ${packageName}`, {
+      const brewOpts = options?.[PackageManager.BREW];
+      const flags: string[] = [];
+      if (brewOpts?.cask || brewOpts?.adopt) flags.push('--cask');
+      if (brewOpts?.flags) flags.push(...brewOpts.flags);
+      flags.push('--zap');
+      const flagStr = flags.length > 0 ? `${flags.join(' ')} ` : '';
+      const { status } = await $.spawnSafe(`brew uninstall ${flagStr}${packageName}`, {
         interactive: true,
-        env: { HOMEBREW_NO_AUTO_UPDATE: 1 }
+        env: { HOMEBREW_NO_AUTO_UPDATE: 1, HOMEBREW_NO_ASK: 1 }
       });
       return status === SpawnStatus.SUCCESS;
     }
 
-    if (Utils.isLinux()) {
+    const useApt = forcePackageManager === PackageManager.APT || (!forcePackageManager && Utils.isLinux());
+    if (useApt) {
+      const aptOpts = options?.[PackageManager.APT];
+      const extraFlags = aptOpts?.flags ?? [];
       const isAptInstalled = await $.spawnSafe('which apt');
       if (isAptInstalled.status === SpawnStatus.SUCCESS) {
-        const { status } = await $.spawnSafe(`apt-get -qq autoremove -y -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 --purge ${packageName}`, {
+        const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
+        const { status } = await $.spawnSafe(`apt-get -qq autoremove -y -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 --purge ${flagStr}${packageName}`, {
           requiresRoot: true,
           env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
         });
         return status === SpawnStatus.SUCCESS;
       }
+    }
 
+    if (forcePackageManager === PackageManager.DNF || !forcePackageManager) {
+      const dnfOpts = options?.[PackageManager.DNF];
+      const extraFlags = dnfOpts?.flags ?? [];
       const isDnfInstalled = await $.spawnSafe('which dnf');
       if (isDnfInstalled.status === SpawnStatus.SUCCESS) {
-        const { status } = await $.spawnSafe(`dnf autoremove ${packageName} -y`, { requiresRoot: true });
+        const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
+        const { status } = await $.spawnSafe(`dnf autoremove ${flagStr}${packageName} -y`, { requiresRoot: true });
         return status === SpawnStatus.SUCCESS;
       }
+    }
 
+    if (forcePackageManager === PackageManager.YUM || !forcePackageManager) {
+      const yumOpts = options?.[PackageManager.YUM];
+      const extraFlags = yumOpts?.flags ?? [];
       const isYumInstalled = await $.spawnSafe('which yum');
       if (isYumInstalled.status === SpawnStatus.SUCCESS) {
-        const { status } = await $.spawnSafe(`yum autoremove ${packageName} -y`, { requiresRoot: true });
+        const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
+        const { status } = await $.spawnSafe(`yum autoremove ${flagStr}${packageName} -y`, { requiresRoot: true });
         return status === SpawnStatus.SUCCESS;
       }
-
-      return false;
     }
 
     return false;
