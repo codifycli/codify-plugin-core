@@ -96,13 +96,25 @@ export class Plan<T extends StringIndexedObject> {
       isStateful
     });
 
-    const filteredCurrentParameters = Plan.filterCurrentParams<T>({
+    let filteredCurrentParameters = Plan.filterCurrentParams<T>({
       desired,
       current,
       state,
       settings,
       isStateful
     });
+
+    // A filtered result with at least one key, where every value is absent (empty array/object, null,
+    // undefined), carries no actionable state — treat it the same as no current parameters at all.
+    // This matters for resources managing an internal array (e.g. multiple declarations in one
+    // resource instance) where destroy-time filtering can legitimately narrow the array down to []
+    // once every declared item has been removed, without the resource itself disappearing from
+    // filteredCurrentParams. An empty object ({}, zero keys) is intentionally excluded — per the
+    // refresh() contract, {} means "exists with no state to track", distinct from "doesn't exist".
+    const filteredEntries = filteredCurrentParameters ? Object.values(filteredCurrentParameters) : [];
+    if (filteredCurrentParameters && filteredEntries.length > 0 && filteredEntries.every((v) => ChangeSet.isAbsent(v))) {
+      filteredCurrentParameters = null;
+    }
 
     // Empty
     if (!filteredCurrentParameters && !desired) {

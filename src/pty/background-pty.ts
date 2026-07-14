@@ -21,7 +21,10 @@ EventEmitter.defaultMaxListeners = 1000;
  */
 export class BackgroundPty implements IPty {
   private historyIgnore = Utils.getShell() === Shell.ZSH ? { HISTORY_IGNORE: '*' } : { HISTIGNORE: '*' };
-  private basePty = pty.spawn(this.getDefaultShell(), ['-i'], {
+  // Login + interactive (-l -i) so the user's rc files are sourced. GUI launches
+  // (e.g. the Codify desktop app) do not inherit env like TART_HOME / PATH additions
+  // from the parent process; these live in ~/.zshrc / ~/.zprofile.
+  private basePty = pty.spawn(this.getDefaultShell(), ['-l', '-i'], {
     env: { ...process.env, ...this.historyIgnore },
     cols: 10_000, // Set to a really large value to prevent wrapping
     name: nanoid(6),
@@ -156,6 +159,6 @@ export class BackgroundPty implements IPty {
   }
 
   private getDefaultShell(): string {
-    return process.env.SHELL!;
+    return Utils.getDefaultShell();
   }
 }

@@ -227,7 +227,7 @@ export class ChangeSet<T extends StringIndexedObject> {
     return orderOfOperations[Math.max(indexPrev, indexNext)];
   }
 
-  private static isAbsent(v: unknown): boolean {
+  static isAbsent(v: unknown): boolean {
     if (v === null || v === undefined) return true;
     if (Array.isArray(v)) return v.length === 0;
     if (typeof v === 'object') return Object.keys(v as object).length === 0;

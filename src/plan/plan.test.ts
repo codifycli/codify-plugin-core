@@ -226,6 +226,39 @@ describe('Plan entity tests', () => {
     })
   })
 
+  it('Treats an empty-after-filtering array as no current state (already destroyed)', async () => {
+    const resource = new class extends TestResource {
+      getSettings(): ResourceSettings<any> {
+        return {
+          id: 'type',
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            propZ: { type: 'array', isElementEqual: (a, b) => a === b }
+          }
+        }
+      }
+
+      async refresh(): Promise<Partial<any> | null> {
+        // The declared item is already gone from the system, but other unrelated items remain —
+        // refresh() can't know which items belong to this resource's declared config, so it still
+        // returns a non-empty object overall.
+        return {
+          propZ: ['some-other-unmanaged-item']
+        }
+      }
+    }
+
+    const controller = new ResourceController(resource);
+    const plan = await controller.plan(
+      { type: 'type' },
+      null,
+      { propZ: ['20.15.0'] } as any,
+      true
+    )
+
+    expect(plan.changeSet.operation).to.eq(ResourceOperation.NOOP);
+  })
+
   it('Doesn\'t filters array parameters if filtering is disabled', async () => {
     const resource = new class extends TestResource {
       getSettings(): ResourceSettings<any> {

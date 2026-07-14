@@ -132,6 +132,20 @@ export const Utils = {
     return undefined;
   },
 
+  /**
+   * Resolves the shell binary to launch commands with. `process.env.SHELL` is
+   * only set when Codify is launched from a terminal — GUI launches (e.g. the
+   * Codify desktop app via launchd) do not export it, in which case
+   * `node-pty` would fall back to `/bin/sh`, which does not source the user's
+   * `~/.zshrc`/`~/.bash_profile`. That drops user env (e.g. TART_HOME, PATH
+   * additions), breaking resource refresh. Fall back to the login shell from
+   * the passwd database (os.userInfo().shell) so we always use the user's real
+   * shell regardless of how Codify was started.
+   */
+  getDefaultShell(): string {
+    return process.env.SHELL || os.userInfo().shell || '/bin/zsh';
+  },
+
 
   getPrimaryShellRc(): string {
     return this.getShellRcFiles()[0];
@@ -244,7 +258,10 @@ Brew can be installed using Codify:
       if (brewOpts?.adopt) flags.push('--adopt');
       if (brewOpts?.flags) flags.push(...brewOpts.flags);
       const flagStr = flags.length > 0 ? `${flags.join(' ')} ` : '';
-      await $.spawn(`brew install ${flagStr}${packageName}`, { interactive: true, env: { HOMEBREW_NO_AUTO_UPDATE: 1, HOMEBREW_NO_ASK: 1 } });
+      // Redirect stdin from /dev/null so Homebrew's ask.rb detects a non-TTY stdin
+      // and skips any [y/n] confirmation prompts (e.g. "Do you want to proceed with the installation?").
+      // NONINTERACTIVE=1 alone is not sufficient — Homebrew's prompt only checks tty?, not that var.
+      await $.spawn(`brew install ${flagStr}${packageName} < /dev/null`, { interactive: true, env: { HOMEBREW_NO_AUTO_UPDATE: 1, NONINTERACTIVE: 1 } });
       return;
     }
 
@@ -350,7 +367,7 @@ Brew can be installed using Codify:
       const flagStr = flags.length > 0 ? `${flags.join(' ')} ` : '';
       const { status } = await $.spawnSafe(`brew uninstall ${flagStr}${packageName}`, {
         interactive: true,
-        env: { HOMEBREW_NO_AUTO_UPDATE: 1, HOMEBREW_NO_ASK: 1 }
+        env: { HOMEBREW_NO_AUTO_UPDATE: 1, NONINTERACTIVE: 1 }
       });
       return status === SpawnStatus.SUCCESS;
     }
