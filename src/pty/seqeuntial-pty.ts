@@ -92,11 +92,13 @@ export class SequentialPty implements IPty {
       // the pty waiting for interactive input. Can't be disabled via env var; must unset the options explicitly.
       const disableAutocorrect = Utils.getShell() === Shell.ZSH ? 'unsetopt CORRECT CORRECT_ALL 2>/dev/null; ' : '';
       const wrappedCmd = `${disableAutocorrect}${cmd}`;
-      // Use a login + interactive shell (-l -i) so the user's rc files are sourced.
-      // This matters for GUI launches (e.g. the Codify desktop app) where env vars
-      // like TART_HOME and PATH additions live in ~/.zshrc/~/.zprofile and are not
-      // inherited from the parent process.
-      const args = options?.interactive ? ['-l', '-i', '-c', wrappedCmd] : ['-c', wrappedCmd]
+      // Add -l (login shell) only for GUI launches (e.g. the Codify desktop app),
+      // detected via the absence of process.env.SHELL, so rc files sourced via
+      // ~/.zshrc/~/.zprofile are picked up. On terminal/CI launches, avoid -l:
+      // it sources ~/.profile/~/.bash_profile instead of ~/.bashrc on Linux,
+      // hiding PATH exports written by FileUtils.addToShellRc().
+      const loginFlag = Utils.needsLoginShell() ? ['-l'] : [];
+      const args = options?.interactive ? [...loginFlag, '-i', '-c', wrappedCmd] : ['-c', wrappedCmd]
 
       // Run the command in a pty for interactivity
       const mPty = pty.spawn(this.getDefaultShell(), args, {

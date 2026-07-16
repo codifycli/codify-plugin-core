@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { getPty, SpawnStatus } from '../pty/index.js';
+import { getPty, SpawnResult, SpawnStatus } from '../pty/index.js';
 
 export function isDebug(): boolean {
   return process.env.DEBUG != null && process.env.DEBUG.includes('codify'); // TODO: replace with debug library
@@ -146,6 +146,22 @@ export const Utils = {
     return process.env.SHELL || os.userInfo().shell || '/bin/zsh';
   },
 
+  /**
+   * Whether interactive spawns should add `-l` (login shell) on top of `-i`.
+   * Only needed when `process.env.SHELL` is unset — the signal that Codify was
+   * launched outside a terminal (e.g. the desktop app via launchd on macOS),
+   * where GUI-launched processes don't inherit the user's rc-file env (e.g.
+   * TART_HOME, PATH additions).
+   *
+   * When `SHELL` *is* set (normal terminal/CI launches), a login shell must be
+   * avoided: on Linux, `-l` sources `~/.profile`/`~/.bash_profile` instead of
+   * `~/.bashrc` (often not sourcing `.bashrc` at all, since CI images
+   * typically ship no `~/.bash_profile`), so PATH exports written by
+   * `FileUtils.addToShellRc()` become invisible to later interactive spawns.
+   */
+  needsLoginShell(): boolean {
+    return !process.env.SHELL;
+  },
 
   getPrimaryShellRc(): string {
     return this.getShellRcFiles()[0];
@@ -274,10 +290,25 @@ Brew can be installed using Codify:
       if (isAptInstalled.status === SpawnStatus.SUCCESS) {
         await $.spawn('apt-get update', { requiresRoot: true });
         const flagStr = extraFlags.length > 0 ? `${extraFlags.join(' ')} ` : '';
-        const { status, data } = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${flagStr}${packageName}`, {
-          requiresRoot: true,
-          env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
-        });
+
+        let status: SpawnResult['status'] = SpawnStatus.ERROR;
+        let data = '';
+        const maxLockRetries = 5;
+        for (let attempt = 0; attempt <= maxLockRetries; attempt++) {
+          ({ status, data } = await $.spawnSafe(`apt-get -y -qq install -o Dpkg::Use-Pty=0 -o Dpkg::Progress-Fancy=0 ${flagStr}${packageName}`, {
+            requiresRoot: true,
+            env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
+          }));
+
+          // dpkg/apt lock is held by another process (e.g. unattended-upgrades on a fresh VM).
+          // This isn't a broken-dependency condition, so back off and retry rather than falling
+          // through to `apt-get install -f`, which will just hit the same lock and fail too.
+          const isLockContention = status === SpawnStatus.ERROR
+            && (data.includes('Could not get lock') || data.includes('dpkg frontend lock'));
+          if (!isLockContention || attempt === maxLockRetries) break;
+
+          await new Promise((resolve) => setTimeout(resolve, 5000 * (attempt + 1)));
+        }
 
         if (status === SpawnStatus.ERROR && data.includes('E: dpkg was interrupted, you must manually run \'sudo dpkg --configure -a\' to correct the problem.')) {
           await $.spawn('dpkg --configure -a', { requiresRoot: true });
@@ -286,6 +317,12 @@ Brew can be installed using Codify:
             env: { DEBIAN_FRONTEND: 'noninteractive', NEEDRESTART_MODE: 'a' }
           });
           return;
+        }
+
+        const isLockContention = status === SpawnStatus.ERROR
+          && (data.includes('Could not get lock') || data.includes('dpkg frontend lock'));
+        if (isLockContention) {
+          throw new Error(`Failed to install package ${packageName} via apt: dpkg/apt lock held by another process after ${maxLockRetries} retries: ${data}`);
         }
 
         if (status === SpawnStatus.ERROR) {
