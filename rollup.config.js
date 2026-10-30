@@ -11,7 +11,7 @@ export default {
     format: 'cjs',
     inlineDynamicImports: true,
   },
-  external: ['@homebridge/node-pty-prebuilt-multiarch'],
+  external: ['node-pty'],
   plugins: [
     json(),
     nodeResolve({ exportConditions: ['node'] }),

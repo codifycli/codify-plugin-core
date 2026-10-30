@@ -1,4 +1,4 @@
-import pty from '@homebridge/node-pty-prebuilt-multiarch';
+import pty from 'node-pty';
 import { nanoid } from 'nanoid';
 import * as cp from 'node:child_process';
 import { EventEmitter } from 'node:events';

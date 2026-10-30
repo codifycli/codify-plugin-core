@@ -176,7 +176,7 @@ GitHub Actions workflow (`.github/workflows/unit-test-ci.yaml`):
 Key dependencies:
 
 - `@codifycli/schemas`: Shared schema definitions and types
-- `@homebridge/node-pty-prebuilt-multiarch`: PTY for shell command execution
+- `node-pty`: PTY (1.2 betas bundle prebuilt binaries for all platforms, so no install script is needed) for shell command execution
 - `ajv`: JSON Schema validation
 - `zod`: Alternative schema validation (v4)
 - `clean-deep`: Remove null/undefined from objects

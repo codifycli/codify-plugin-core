@@ -4,7 +4,7 @@ import {
   IpcMessageV2,
   MessageCmd
 } from '@codifycli/schemas';
-import pty from '@homebridge/node-pty-prebuilt-multiarch';
+import pty from 'node-pty';
 import { Ajv } from 'ajv';
 import { nanoid } from 'nanoid';
 import { EventEmitter } from 'node:events';

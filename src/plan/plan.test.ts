@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { Plan } from './plan.js';
-import { OS, ParameterOperation, ResourceOperation } from '@codifycli/schemas';
+import { OS, ParameterOperation, ResourceOperation, StringIndexedObject } from '@codifycli/schemas';
 import { TestConfig, TestResource } from '../utils/test-utils.test.js';
 import { ResourceController } from '../resource/resource-controller.js';
 import { ParsedResourceSettings } from '../resource/parsed-resource-settings.js';
 import { ResourceSettings } from '../resource/resource-settings.js';
+import { Resource } from '../resource/resource.js';
+import { ArrayStatefulParameter } from '../stateful-parameter/stateful-parameter.js';
 
 describe('Plan entity tests', () => {
   it('Adds default values properly when plan is parsed from request (Create)', () => {
@@ -427,7 +429,88 @@ describe('Plan entity tests', () => {
       ])
     })
   })
+
+  // Regression: a resource that exists but tracks no stateful items (e.g. `{ type: 'homebrew' }`
+  // with no formulae/casks) refreshed to all-empty stateful arrays. Those were previously treated
+  // as "no current parameters", so the post-apply validation plan re-planned it as a CREATE and
+  // apply failed with "Additional changes are needed to complete apply."
+  it('Does not plan a CREATE when an existing resource has only empty stateful parameters', async () => {
+    const resource = new class extends Resource<StatefulEmptyConfig> {
+      getSettings(): ResourceSettings<StatefulEmptyConfig> {
+        return {
+          id: 'type',
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            formulae: { type: 'stateful', definition: new EmptyArrayParameter(), order: 1 },
+            casks: { type: 'stateful', definition: new EmptyArrayParameter(), order: 2 },
+            skipAlreadyInstalledCasks: { type: 'boolean', default: true, setting: true },
+          },
+        }
+      }
+
+      // The resource itself exists, with nothing of its own to track.
+      async refresh(): Promise<Partial<StatefulEmptyConfig> | null> {
+        return {};
+      }
+
+      async create(): Promise<void> {}
+      async destroy(): Promise<void> {}
+    };
+
+    const controller = new ResourceController(resource);
+    const desired: Partial<StatefulEmptyConfig> = { formulae: [], casks: [] };
+
+    const plan = await controller.plan({ type: 'type' }, desired, desired, false, 'validationPlan');
+
+    expect(plan.changeSet.operation).toBe(ResourceOperation.NOOP);
+    expect(plan.requiresChanges()).to.be.false;
+  })
+
+  it('Still treats an absent non-stateful parameter set as no current parameters', async () => {
+    const resource = new class extends Resource<StatefulEmptyConfig> {
+      getSettings(): ResourceSettings<StatefulEmptyConfig> {
+        return {
+          id: 'type',
+          operatingSystems: [OS.Darwin],
+          parameterSettings: {
+            formulae: { type: 'stateful', definition: new EmptyArrayParameter(), order: 1 },
+          },
+        }
+      }
+
+      // The resource's own parameter refreshes to an empty array -> resource is absent.
+      async refresh(): Promise<Partial<StatefulEmptyConfig> | null> {
+        return { declarations: [] } as Partial<StatefulEmptyConfig>;
+      }
+
+      async create(): Promise<void> {}
+      async destroy(): Promise<void> {}
+    };
+
+    const controller = new ResourceController(resource);
+    const desired: Partial<StatefulEmptyConfig> = { declarations: ['a'], formulae: [] };
+
+    const plan = await controller.plan({ type: 'type' }, desired, null, false);
+
+    expect(plan.changeSet.operation).toBe(ResourceOperation.CREATE);
+  })
 })
+
+interface StatefulEmptyConfig extends StringIndexedObject {
+  formulae?: string[];
+  casks?: string[];
+  declarations?: string[];
+  skipAlreadyInstalledCasks?: boolean;
+}
+
+class EmptyArrayParameter extends ArrayStatefulParameter<StatefulEmptyConfig, string> {
+  async refresh(): Promise<string[] | null> {
+    return [];
+  }
+
+  async addItem(): Promise<void> {}
+  async removeItem(): Promise<void> {}
+}
 
 function createTestResource() {
   return new class extends TestResource {
