@@ -1,5 +1,7 @@
 import {
   ApplyRequestData,
+  FindInstancesRequestData,
+  FindInstancesResponseData,
   GetResourceInfoRequestData,
   GetResourceInfoResponseData,
   ImportRequestData,
@@ -54,6 +56,13 @@ export class Plugin {
       controllers.map((r) => [r.typeId, r] as const)
     );
 
+    for (const controller of controllers) {
+      const supersededBy = controller.settings.importAndDestroy?.supersededBy;
+      if (supersededBy !== undefined && (supersededBy === controller.typeId || !controllersMap.has(supersededBy))) {
+        throw new Error(`Resource: ${controller.typeId}. importAndDestroy.supersededBy must be the type of another resource in this plugin. Received: ${supersededBy}`);
+      }
+    }
+
     return new Plugin(name, controllersMap, options);
   }
 
@@ -87,6 +96,7 @@ export class Plugin {
             sensitiveParameters,
             operatingSystems: r.settings.operatingSystems,
             linuxDistros: r.settings.linuxDistros,
+            supersededBy: r.settings.importAndDestroy?.supersededBy,
           }
         })
     }
@@ -170,6 +180,25 @@ export class Plugin {
     return {
       request: data,
       result: result ?? [],
+    }
+  }
+
+  async findInstances(data: FindInstancesRequestData): Promise<FindInstancesResponseData> {
+    const { core } = data;
+
+    if (!this.resourceControllers.has(core.type)) {
+      throw new Error(`Cannot find instances for resource ${core.type}, resource doesn't exist`);
+    }
+
+    const result = await ptyLocalStorage.run(this.planPty, () =>
+      this.resourceControllers
+        .get(core.type)!
+        .findInstances(core)
+    )
+
+    return {
+      request: data,
+      result,
     }
   }
 

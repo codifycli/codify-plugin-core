@@ -156,8 +156,22 @@ export interface ResourceSettings<T extends StringIndexedObject> {
      * resource valid for imports. Defaults to false.
      *
      * Resources that can't be imported in the core library for example are: action resources
+     *
+     * Only use this for resources that truly can't be imported. If the resource conflicts with another resource during
+     * import all (ex: `alias` and `aliases` manage the same state) use {@link supersededBy} instead.
      */
     preventImport?: boolean;
+
+    /**
+     * The type id of another resource that manages the same system state as this one, typically the plural version of
+     * this resource (ex: `alias` is superseded by `aliases`, `git-repository` by `git-repositories`).
+     *
+     * When both resources are imported automatically (`codify init` / `codify import` with no arguments), this resource
+     * is skipped so the same state isn't imported twice. It can still be imported directly (`codify import alias`),
+     * planned, applied and destroyed, and its instances can still be discovered with
+     * {@link allowMultiple.findAllParameters}.
+     */
+    supersededBy?: string;
 
     /**
      * Can this resources be destroyed? If set to false then the codifyCLI will skip over/not consider this
