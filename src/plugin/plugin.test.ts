@@ -530,4 +530,120 @@ describe('Plugin tests', () => {
       })
     ).rejects.toThrowError();
   })
+
+  describe('findInstances', () => {
+    class MultipleResource extends TestResource {
+      findAllCalls = 0;
+
+      getSettings(): ResourceSettings<TestConfig> {
+        return {
+          id: 'testResource',
+          operatingSystems: [OS.Darwin],
+          importAndDestroy: {
+            preventImport: true,
+          },
+          allowMultiple: {
+            identifyingParameters: ['propA'],
+            findAllParameters: async () => {
+              this.findAllCalls++;
+              return [{ propA: 'a' }, { propA: 'b' }, { propA: 'missing' }];
+            },
+          },
+        }
+      }
+
+      async refresh(parameters: Partial<TestConfig>): Promise<Partial<TestConfig> | null> {
+        if (parameters.propA === 'missing') {
+          return null;
+        }
+
+        return { propA: parameters.propA, propB: 10 };
+      }
+    }
+
+    it('Finds every existing instance even if the resource prevents imports', async () => {
+      const resource = new MultipleResource();
+      const testPlugin = Plugin.create('testPlugin', [resource]);
+
+      const result = await testPlugin.findInstances({ core: { type: 'testResource' } });
+
+      expect(result.request).toMatchObject({ core: { type: 'testResource' } });
+      expect(result.result).toEqual([
+        { core: { type: 'testResource' }, parameters: { propA: 'a', propB: 10 } },
+        { core: { type: 'testResource' }, parameters: { propA: 'b', propB: 10 } },
+      ]);
+      expect(resource.findAllCalls).to.eq(1);
+    })
+
+    it('Still prevents imports when preventImport is set', async () => {
+      const testPlugin = Plugin.create('testPlugin', [new MultipleResource()]);
+
+      await expect(testPlugin.import({ core: { type: 'testResource' }, parameters: {}, autoSearchAll: true }))
+        .rejects.toThrowError();
+    })
+
+    it('Import all uses the same discovery and only calls findAllParameters once', async () => {
+      const resource = new class extends MultipleResource {
+        getSettings(): ResourceSettings<TestConfig> {
+          return { ...super.getSettings(), importAndDestroy: undefined };
+        }
+      }
+      const testPlugin = Plugin.create('testPlugin', [resource]);
+
+      const result = await testPlugin.import({ core: { type: 'testResource' }, parameters: {}, autoSearchAll: true });
+
+      expect(result.result.map((r) => r.parameters.propA)).toEqual(['a', 'b']);
+      expect(resource.findAllCalls).to.eq(1);
+    })
+
+    it('Returns nothing if the resource can not discover instances', async () => {
+      const singleton = Plugin.create('testPlugin', [new TestResource()]);
+      expect((await singleton.findInstances({ core: { type: 'testResource' } })).result).toEqual([]);
+
+      const noFindAll = Plugin.create('testPlugin', [new class extends TestResource {
+        getSettings(): ResourceSettings<TestConfig> {
+          return { ...super.getSettings(), allowMultiple: { identifyingParameters: ['propA'] } };
+        }
+      }]);
+      expect((await noFindAll.findInstances({ core: { type: 'testResource' } })).result).toEqual([]);
+    })
+
+    it('Errors for unknown resources', async () => {
+      const testPlugin = Plugin.create('testPlugin', [new TestResource()]);
+      await expect(testPlugin.findInstances({ core: { type: 'unknown' } })).rejects.toThrowError();
+    })
+  })
+
+  describe('supersededBy', () => {
+    const singular = new class extends TestResource {
+      getSettings(): ResourceSettings<TestConfig> {
+        return { id: 'singular', operatingSystems: [OS.Darwin], importAndDestroy: { supersededBy: 'plural' } };
+      }
+    }
+
+    const plural = new class extends TestResource {
+      getSettings(): ResourceSettings<TestConfig> {
+        return { id: 'plural', operatingSystems: [OS.Darwin] };
+      }
+    }
+
+    it('Returns supersededBy in the resource definitions', async () => {
+      const testPlugin = Plugin.create('testPlugin', [singular, plural]);
+      const { resourceDefinitions } = await testPlugin.initialize({});
+
+      expect(resourceDefinitions.find((d) => d.type === 'singular')?.supersededBy).to.eq('plural');
+      expect(resourceDefinitions.find((d) => d.type === 'plural')?.supersededBy).to.be.undefined;
+    })
+
+    it('Errors if supersededBy is not another resource in the plugin', () => {
+      expect(() => Plugin.create('testPlugin', [singular])).toThrowError(/supersededBy/);
+
+      const self = new class extends TestResource {
+        getSettings(): ResourceSettings<TestConfig> {
+          return { id: 'self', operatingSystems: [OS.Darwin], importAndDestroy: { supersededBy: 'self' } };
+        }
+      }
+      expect(() => Plugin.create('testPlugin', [self])).toThrowError(/supersededBy/);
+    })
+  })
 });

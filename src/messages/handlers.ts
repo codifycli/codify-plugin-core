@@ -1,6 +1,8 @@
 import {
   ApplyRequestDataSchema,
   EmptyResponseDataSchema,
+  FindInstancesRequestDataSchema,
+  FindInstancesResponseDataSchema,
   GetResourceInfoRequestDataSchema,
   GetResourceInfoResponseDataSchema,
   ImportRequestDataSchema,
@@ -62,6 +64,11 @@ const SupportedRequests: Record<string, { handler: (plugin: Plugin, data: any) =
     handler: async (plugin: Plugin, data: any) => plugin.import(data),
     requestValidator: ImportRequestDataSchema,
     responseValidator: ImportResponseDataSchema
+  },
+  'findInstances': {
+    handler: async (plugin: Plugin, data: any) => plugin.findInstances(data),
+    requestValidator: FindInstancesRequestDataSchema,
+    responseValidator: FindInstancesResponseDataSchema
   },
   'plan': {
     handler: async (plugin: Plugin, data: any) => plugin.plan(data),

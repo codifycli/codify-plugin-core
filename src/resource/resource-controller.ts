@@ -276,25 +276,50 @@ export class ResourceController<T extends StringIndexedObject> {
       throw new Error(`Type: ${this.typeId} cannot be imported`);
     }
 
+    // Auto search means that no required parameters will be provided. We will try to generate it ourselves or return an
+    // empty array if they can't be.
+    if (autoSearchAll && this.settings.allowMultiple) {
+      return this.findInstances(core);
+    }
+
+    return this.refreshForImport(core, parameters);
+  }
+
+  /**
+   * Find every instance of this resource that currently exists on the system using
+   * {@link ResourceSettings.allowMultiple.findAllParameters}. Each instance is refreshed so only instances that
+   * actually exist are returned.
+   *
+   * Unlike {@link import}, this is discovery only and is not blocked by `importAndDestroy.preventImport` (ex: destroy
+   * uses it to let the user pick which instance to remove). Returns an empty array if the resource doesn't support
+   * multiple instances or can't discover them.
+   *
+   * @param core The core config (type, name) to attach to each instance found
+   * @returns Every instance found on the system
+   */
+  async findInstances(core: ResourceConfig): Promise<Array<ResourceJson>> {
+    const { allowMultiple } = this.settings;
+    if (!allowMultiple || allowMultiple === true || !allowMultiple.findAllParameters) {
+      return [];
+    }
+
+    const parametersToFind = await allowMultiple.findAllParameters();
+    const results = await Promise.all(parametersToFind.map((p) =>
+      this.refreshForImport(core, p).catch(() => null))
+    );
+
+    return results.filter(Boolean).flat() as ResourceJson[];
+  }
+
+  private async refreshForImport(
+    core: ResourceConfig,
+    parameters: Partial<T>,
+  ): Promise<Array<ResourceJson>> {
     const context: RefreshContext<T> = {
       commandType: 'import',
       isStateful: true,
       originalDesiredConfig: structuredClone(parameters),
     };
-
-    // Auto search means that no required parameters will be provided. We will try to generate it ourselves or return an
-    // empty array if they can't be.
-    if (autoSearchAll && this.settings.allowMultiple) {
-      if (this.settings.allowMultiple === true || !this.settings.allowMultiple.findAllParameters?.()) {
-        return [];
-      }
-
-      const parametersToImport = await this.settings.allowMultiple.findAllParameters?.();
-      const results = await Promise.all(parametersToImport.map((p) =>
-        this.import(core, p).catch(() => null))
-      );
-      return results.filter(Boolean).flat() as ResourceJson[];
-    }
 
     this.addDefaultValues(parameters);
     await this.applyTransformations(parameters);
