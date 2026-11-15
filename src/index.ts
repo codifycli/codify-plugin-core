@@ -20,6 +20,7 @@ export * from './utils/functions.js'
 export * from './utils/index.js'
 export * from './utils/verbosity-level.js'
 export * from 'zod/v4';
+export * from './utils/shell-escape.js'
 
 export async function runPlugin(plugin: Plugin) {
   const messageHandler = new MessageHandler(plugin);
