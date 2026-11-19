@@ -1,7 +1,13 @@
 import { StringIndexedObject } from '@codifycli/schemas';
 
 import { Plan } from '../plan/plan.js';
-import { ArrayParameterSetting, ParameterSetting } from '../resource/resource-settings.js';
+import type { ParameterSetting } from '../resource/resource-settings.js';
+
+/**
+ * Settings a stateful parameter can provide for itself. Same as {@link ParameterSetting} except that it can't attach
+ * another stateful parameter. Options set on the resource's parameterSettings take precedence over these.
+ */
+export type StatefulParameterSetting = Omit<ParameterSetting, 'order' | 'stateful'>;
 
 /**
  * A stateful parameter represents a parameter that holds state on the system (can be created, destroyed) but
@@ -17,12 +23,12 @@ export abstract class StatefulParameter<T extends StringIndexedObject, V extends
 
   /**
    * Parameter settings for the stateful parameter. Stateful parameters share the same parameter settings as
-   * regular parameters except that they cannot be of type 'stateful'. See {@link ParameterSetting} for more
+   * regular parameters except that they cannot attach another stateful parameter. See {@link ParameterSetting} for more
    * information on available settings.
    *
    * @return The parameter settings
    */
-  getSettings(): ParameterSetting {
+  getSettings(): StatefulParameterSetting {
     return {}
   }
 
@@ -105,12 +111,12 @@ export abstract class ArrayStatefulParameter<T extends StringIndexedObject, V> {
 
   /**
    * Parameter settings for the stateful parameter. Stateful parameters share the same parameter settings as
-   * regular parameters except that they cannot be of type 'stateful'. See {@link ParameterSetting} for more
-   * information on available settings. Type must be 'array'.
+   * regular parameters except that they cannot attach another stateful parameter. See {@link ParameterSetting} for more
+   * information on available settings. Type defaults to 'array'.
    *
    * @return The parameter settings
    */
-  getSettings(): ArrayParameterSetting {
+  getSettings(): StatefulParameterSetting {
     return { type: 'array' }
   }
 

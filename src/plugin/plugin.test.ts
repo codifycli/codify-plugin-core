@@ -446,7 +446,7 @@ describe('Plugin tests', () => {
           id: 'ssh-config',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            hosts: { type: 'stateful', definition: new TestStatefulParameter() }
+            hosts: { stateful: new TestStatefulParameter() }
           },
           importAndDestroy: {
             refreshKeys: ['hosts'],

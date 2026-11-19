@@ -277,7 +277,7 @@ describe('Change set tests', () => {
       },
     };
 
-    const cs = ChangeSet.destroy({ propA: 'val', propB: true }, settings as any);
+    const cs = ChangeSet.destroy({ propA: 'val', propB: true }, new ParsedResourceSettings(settings as any));
     expect(cs.parameterChanges.length).to.eq(1);
     expect(cs.parameterChanges[0].name).to.eq('propA');
     expect(cs.parameterChanges[0].operation).to.eq(ParameterOperation.REMOVE);
@@ -297,7 +297,7 @@ describe('Change set tests', () => {
 
     const cs = ChangeSet.destroy(
       { skipAlreadyInstalledCasks: true, onlyPlanUserInstalled: true, directory: '/opt/homebrew' },
-      settings as any
+      new ParsedResourceSettings(settings as any)
     );
     expect(cs.parameterChanges.length).to.eq(1);
     expect(cs.parameterChanges[0].name).to.eq('directory');
