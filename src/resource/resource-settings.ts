@@ -1,17 +1,9 @@
 import { LinuxDistro, OS, StringIndexedObject } from '@codifycli/schemas';
 import { JSONSchemaType } from 'ajv';
-import isObjectsEqual from 'lodash.isequal'
-import path from 'node:path';
 import { ZodObject } from 'zod';
 
 import { ArrayStatefulParameter, StatefulParameter } from '../stateful-parameter/stateful-parameter.js';
-import {
-  addVariablesToPath,
-  areArraysEqual,
-  resolvePathWithVariables,
-  tildify,
-  untildify
-} from '../utils/functions.js';
+import { NestedConfigPath } from './parameter-paths.js';
 import { ParsedResourceSettings } from './parsed-resource-settings.js';
 import { RefreshContext } from './resource.js';
 
@@ -118,10 +110,13 @@ export interface ResourceSettings<T extends StringIndexedObject> {
   dependencies?: string[];
 
   /**
-   * Options for configuring parameters operations including overriding the equals function, adding default values
-   * and applying any input transformations. Use parameter settings to define stateful parameters as well.
+   * Options for configuring parameters operations including overriding the equals function, adding default values,
+   * applying input transformations, marking values sensitive and attaching stateful parameters.
+   *
+   * Keys are top level parameter names or (only when a nested value needs a setting) typed paths into the config,
+   * ex: `'envFiles[*].contents[*].value': { isSensitive: true }`. See {@link ParameterSettings}.
    */
-  parameterSettings?: Partial<Record<keyof T, ParameterSetting>>;
+  parameterSettings?: ParameterSettings<T>;
 
   /**
    * A config level transformation that is only applied to the user supplied desired config. This transformation is allowed
@@ -235,9 +230,11 @@ export interface ResourceSettings<T extends StringIndexedObject> {
 }
 
 /**
- * The type of parameter. This value is mainly used to determine a pre-set equality method for comparing the current
- * config with desired config. Certain types will have additional options to help support it. For example the type
- * stateful requires a stateful parameter definition and type array takes an isElementEqual method.
+ * The type of a parameter value. This is mainly used to pick a pre-set equality method (and for some types an input
+ * transformation) for comparing the current config with the desired config.
+ *
+ * When omitted, the type is inferred from the schema where possible (`string`, `number`, `boolean`, `array`, `object`).
+ * Types that the schema can't express, such as `directory` and `version`, must be declared.
  */
 export type ParameterSettingType =
   'any'
@@ -246,109 +243,122 @@ export type ParameterSettingType =
   | 'directory'
   | 'number'
   | 'object'
-  | 'setting'
-  | 'stateful'
   | 'string'
   | 'version';
 
 /**
- * Typing information for the parameter setting. This represents a setting on a specific parameter within a
- * resource. Options for configuring parameters operations including overriding the equals function, adding default values
- * and applying any input transformations. See {@link DefaultParameterSetting } for more information.
- * Use parameter settings to define stateful parameters as well.
+ * Settings for a single parameter (or, using a nested path key, a value nested inside a parameter). Options for
+ * configuring parameter operations including overriding the equals function, adding default values, applying input
+ * transformations, marking values as sensitive and attaching stateful parameters.
+ *
+ * Settings marked *(top level only)* are only allowed on top level parameters. Nested paths (`a[*].b`, `a.*`) may use
+ * {@link NestedParameterSetting} options only.
  */
-
-export type ParameterSetting =
-  ArrayParameterSetting
-  | DefaultParameterSetting
-  | StatefulParameterSetting
-
-/**
- * The parent class for parameter settings. The options are applicable to array parameter settings
- * as well.
- */
-export interface DefaultParameterSetting {
-  /**
-   * The type of the value of this parameter. See {@link ParameterSettingType} for the available options. This value
-   * is mainly used to determine the equality method when performing diffing.
-   */
-  type?: ParameterSettingType;
-
-  /**
-   * Mark the field as sensitive. Defaults to false. This has two side effects:
-   * 1. When displaying this field in the plan, it will be replaced with asterisks
-   * 2. When importing, resources with sensitive fields will be skipped unless the user explicitly allows it.
-   */
-  isSensitive?: boolean;
-
+export interface ParameterSetting extends NestedParameterSetting {
   /**
    * Default value for the parameter. If a value is not provided in the config, then this value will be used.
+   * *(top level only)*
    */
   default?: unknown;
 
   /**
    * A transformation of the input value for this parameter. Two transformations need to be provided: to (from desired to
    * the internal type), and from (from the internal type back to desired). All transformations need to be bi-directional
-   * to support imports properly
-   *
-   * @param input The original parameter value from the desired config.
+   * to support imports properly. *(top level only)*
    */
   transformation?: InputTransformation;
 
   /**
-   * Customize the equality comparison for a parameter. This is used in the diffing algorithm for generating the plan.
-   * This value will override the pre-set equality function from the type. Return true if the desired value is
-   * equivalent to the current value.
-   *
-   * @param desired The desired value.
-   * @param current The current value.
-   *
-   * @return Return true if equal
-   */
-  isEqual?: ((desired: any, current: any) => boolean) | ParameterSettingType;
-
-  /**
    * Chose if the resource can be modified instead of re-created when there is a change to this parameter.
-   * Defaults to false (re-create).
+   * Defaults to false (re-create). Stateful parameters are always modified. *(top level only)*
    *
    * Examples:
    * 1. Settings like git user name and git user email that have setter calls and don't require the re-installation of git
    * 2. AWS profile secret keys that can be updated without the re-installation of AWS CLI
    */
-  canModify?: boolean
+  canModify?: boolean;
 
   /**
    * This option allows the plan to skip this parameter entirely as it is used for setting purposes only. The value
-   * of this parameter is used to configure the resource or other parameters.
+   * of this parameter is used to configure the resource or other parameters. *(top level only)*
    *
    * Examples:
    * 1. homebrew.onlyPlanUserInstalled option will tell homebrew to filter by --installed-on-request. But the value,
    * of the parameter itself (true or false) does not have an impact on the plan
    */
-  setting?: boolean
+  setting?: boolean;
+
+  /**
+   * Attach a stateful parameter. A stateful parameter is a sub-resource that can hold its own state but is still tied
+   * to the overall state of the resource. For example 'homebrew' is represented as a resource and taps, formulas and
+   * casks are represented as stateful parameters. A formula can be installed, modified and removed (has state) but it
+   * is still tied to the lifecycle of homebrew. *(top level only)*
+   *
+   * The stateful parameter's own `getSettings()` provides defaults; any option set here takes precedence.
+   */
+  stateful?: ArrayStatefulParameter<any, any> | StatefulParameter<any, any>;
+
+  /**
+   * The order multiple stateful parameters should be applied in. The order is applied in ascending order (1, 2, 3...).
+   * *(top level only, stateful parameters only)*
+   */
+  order?: number;
 }
 
 /**
- * Array type specific settings. See {@link DefaultParameterSetting } for a full list of options.
+ * Settings that can be applied to nested values using a path key (ex: `'envFiles[*].contents[*].value'`) as well
+ * as to top level parameters.
  */
-export interface ArrayParameterSetting extends DefaultParameterSetting {
-  type: 'array'
-
+export interface NestedParameterSetting {
   /**
-   * An element level equality function for arrays. The diffing algorithm will take isElementEqual and use it in a
-   * O(n^2) equality comparison to determine if the overall array is equal. This value will override the pre-set equality
-   * function for arrays (desired === current). Return true if the desired element is equivalent to the current element.
-   *
-   * @param desired An element of the desired array
-   * @param current An element of the current array
-   *
-   * @return Return true if desired is equivalent to current.
+   * The type of the value. See {@link ParameterSettingType} for the available options. Inferred from the schema when
+   * omitted.
    */
-  isElementEqual?: ((desired: any, current: any) => boolean) | ParameterSettingType;
+  type?: ParameterSettingType;
 
   /**
-   * Filter the contents of the refreshed array by the desired. This way items currently on the system but not
-   * in desired don't show up in the plan.
+   * Mark the value as sensitive. Defaults to false. This has two side effects:
+   * 1. When displaying this value in the plan, it will be replaced with asterisks
+   * 2. When importing, resources with sensitive values will be skipped unless the user explicitly allows it.
+   *
+   * On a nested path only the matching values are sensitive (ex: the `value` of every env entry, not the whole array).
+   */
+  isSensitive?: boolean;
+
+  /**
+   * Customize the equality comparison for this value. This is used in the diffing algorithm for generating the plan.
+   * This value will override the pre-set equality function from the type and any nested settings. Return true if the
+   * desired value is equivalent to the current value.
+   */
+  isEqual?: (desired: any, current: any) => boolean;
+
+  /**
+   * *(arrays only)* The type of the array elements. Shorthand for setting `type` on the `param[*]` path.
+   */
+  itemType?: ParameterSettingType;
+
+  /**
+   * *(arrays only)* An element level equality function. Arrays are compared ignoring order using this method. Shorthand
+   * for setting `isEqual` on the `param[*]` path. Defaults to the element type's equality (or nested settings).
+   */
+  isElementEqual?: (desired: any, current: any) => boolean;
+
+  /**
+   * *(arrays of objects only)* The field (or fields) that identify an element, for example `'name'` for a list of
+   * env files or `'alias'` for a list of aliases. Two elements with the same key are the same item, even if their other
+   * fields differ.
+   *
+   * The key is used to filter the current array in stateless mode, so items on the system that aren't declared are
+   * not removed and a changed item shows up as a modification instead of an addition.
+   */
+  key?: string | string[];
+
+  /**
+   * *(arrays and objects)* Filter the refreshed value by the desired value in stateless mode, so items currently on the
+   * system but not declared don't show up in the plan. Defaults to true.
+   *
+   * - Arrays: elements are kept when they match a desired element (by {@link key} if set, otherwise by element equality).
+   * - Objects: only the keys present in desired are kept.
    *
    * <b>For example, for the nvm resource:</b>
    * <ul>
@@ -360,183 +370,26 @@ export interface ArrayParameterSetting extends DefaultParameterSetting {
    * (~20.18.0, +18.9.0, +16.3.1, -22.1.3, -12.1.0)<br>
    * With filtering the plan is: (~20.18.0, +18.9.0, +16.3.1)
    *
-   * As you can see, filtering prevents items currently installed on the system from being removed.
-   *
-   * Defaults to true.
+   * Pass a function for custom filtering, or false to disable it.
    */
-  filterInStatelessMode?: ((desired: any[], current: any[]) => any[]) | boolean,
-
-  /**
-   * The type of the array item. See {@link ParameterSettingType} for the available options. This value
-   * is mainly used to determine the equality method when performing diffing.
-   */
-  itemType?: ParameterSettingType,
+  filterInStatelessMode?: ((desired: any, current: any) => any) | boolean;
 }
 
 /**
- * Stateful parameter type specific settings. A stateful parameter is a sub-resource that can hold its own
- * state but is still tied to the overall state of the resource. For example 'homebrew' is represented
- * as a resource and taps, formulas and casks are represented as a stateful parameter. A formula can be installed,
- * modified and removed (has state) but it is still tied to the overall lifecycle of homebrew.
+ * Parameter settings for a resource config `T`. Keys are top level parameter names or nested paths into the config:
  *
+ * ```ts
+ * parameterSettings: {
+ *   dir: { type: 'directory' },
+ *   envFiles: { canModify: true, key: 'name' },
+ *   'envFiles[*].contents': { key: 'key' },
+ *   'envFiles[*].contents[*].value': { isSensitive: true },
+ * }
+ * ```
  */
-export interface StatefulParameterSetting extends DefaultParameterSetting {
-  type: 'stateful',
-
-  /**
-   * The stateful parameter definition. A stateful parameter is a sub-resource that can hold its own
-   * state but is still tied to the overall state of the resource. For example 'homebrew' is represented
-   * as a resource and taps, formulas and casks are represented as a stateful parameter. A formula can be installed,
-   * modified and removed (has state) but it is still tied to the overall lifecycle of homebrew.
-   */
-  definition: ArrayStatefulParameter<any, unknown> | StatefulParameter<any, unknown>,
-
-  /**
-   * The order multiple stateful parameters should be applied in. The order is applied in ascending order (1, 2, 3...).
-   */
-  order?: number,
-}
-
-const ParameterEqualsDefaults: Partial<Record<ParameterSettingType, (a: unknown, b: unknown) => boolean>> = {
-  'boolean': (a: unknown, b: unknown) => Boolean(a) === Boolean(b),
-  'directory'(a: unknown, b: unknown) {
-    let transformedA = resolvePathWithVariables(untildify(String(a)))
-    let transformedB = resolvePathWithVariables(untildify(String(b)))
-
-    if (transformedA.startsWith('.')) { // Only relative paths start with '.'
-      transformedA = path.resolve(transformedA)
-    }
-
-    if (transformedB.startsWith('.')) { // Only relative paths start with '.'
-      transformedB = path.resolve(transformedB)
-    }
-
-    // macOS has case-insensitive filesystem by default, Linux is case-sensitive
-    const isCaseSensitive = process.platform === 'linux';
-    if (!isCaseSensitive) {
-      transformedA = transformedA.toLowerCase();
-      transformedB = transformedB.toLowerCase();
-    }
-
-    return transformedA === transformedB;
-  },
-  'number': (a: unknown, b: unknown) => Number(a) === Number(b),
-  'string': (a: unknown, b: unknown) => String(a) === String(b),
-  'version': (desired: unknown, current: unknown) => String(current).includes(String(desired)),
-  'object': isObjectsEqual,
-}
-
-export function resolveEqualsFn(parameter: ParameterSetting): (desired: unknown, current: unknown) => boolean {
-  // Setting parameters do not impact the plan
-  if (parameter.setting) {
-    return () => true;
-  }
-
-  const isEqual = resolveFnFromEqualsFnOrString(parameter.isEqual);
-
-  if (parameter.type === 'array') {
-    return isEqual ?? areArraysEqual.bind(areArraysEqual, resolveElementEqualsFn(parameter as ArrayParameterSetting))
-  }
-
-  if (parameter.type === 'stateful') {
-    return resolveEqualsFn((parameter as StatefulParameterSetting).definition.getSettings())
-  }
-
-  return isEqual ?? ParameterEqualsDefaults[parameter.type as ParameterSettingType] ?? (((a, b) => a === b));
-}
-
-export function resolveElementEqualsFn(parameter: ArrayParameterSetting): (desired: unknown, current: unknown) => boolean {
-  if (parameter.isElementEqual) {
-    const elementEq = resolveFnFromEqualsFnOrString(parameter.isElementEqual);
-    if (elementEq) {
-      return elementEq;
-    }
-  }
-
-  if (parameter.itemType && ParameterEqualsDefaults[parameter.itemType]) {
-    return ParameterEqualsDefaults[parameter.itemType]!
-  }
-
-  return (a, b) => a === b;
-}
-
-// This resolves the fn if it is a string.
-// A string can be specified to use a default equals method
-export function resolveFnFromEqualsFnOrString(
-  fnOrString: ((a: unknown, b: unknown) => boolean) | ParameterSettingType | undefined,
-): ((a: unknown, b: unknown) => boolean) | undefined {
-
-  if (fnOrString && typeof fnOrString === 'string') {
-    if (!ParameterEqualsDefaults[fnOrString]) {
-      throw new Error(`isEqual of type ${fnOrString} was not found`)
-    }
-
-    return ParameterEqualsDefaults[fnOrString]!
-  }
-
-  return fnOrString as ((a: unknown, b: unknown) => boolean) | undefined;
-}
-
-const ParameterTransformationDefaults: Partial<Record<ParameterSettingType, InputTransformation>> = {
-  'directory': {
-    to: (a: unknown) => resolvePathWithVariables((untildify(String(a)))),
-    from(a: unknown, original) {
-      if (ParameterEqualsDefaults.directory!(a, original)) {
-        return original;
-      }
-
-      return tildify(addVariablesToPath(String(a)))
-    },
-  },
-  'string': {
-    to: String,
-    from: String,
-  },
-  'boolean': {
-    to: Boolean,
-    from: Boolean,
-  }
-}
-
-export function resolveParameterTransformFn(
-  parameter: ParameterSetting
-): InputTransformation | undefined {
-
-  if (parameter.type === 'stateful' && !parameter.transformation) {
-    const sp = (parameter as StatefulParameterSetting).definition.getSettings();
-    if (sp.transformation) {
-      return (parameter as StatefulParameterSetting).definition?.getSettings()?.transformation
-    }
-
-    return sp.type ? ParameterTransformationDefaults[sp.type] : undefined;
-  }
-
-  if (parameter.type === 'array'
-    && (parameter as ArrayParameterSetting).itemType
-    && ParameterTransformationDefaults[(parameter as ArrayParameterSetting).itemType!]
-    && !parameter.transformation
-  ) {
-    const itemType = (parameter as ArrayParameterSetting).itemType!;
-    const itemTransformation = ParameterTransformationDefaults[itemType]!;
-
-    return {
-      to(input: unknown[]) {
-        return input.map((i) => itemTransformation.to(i))
-      },
-      from(input: unknown[], original) {
-        return input.map((i, idx) => {
-          const originalElement = Array.isArray(original)
-            ? original.find((o) => resolveElementEqualsFn(parameter as ArrayParameterSetting)(o, i)) ?? original[idx]
-            : original;
-
-          return itemTransformation.from(i, originalElement);
-        })
-      }
-    }
-  }
-
-  return parameter.transformation ?? ParameterTransformationDefaults[parameter.type as ParameterSettingType] ?? undefined;
-}
+export type ParameterSettings<T> =
+  { [K in keyof T]?: ParameterSetting }
+  & { [P in NestedConfigPath<T>]?: NestedParameterSetting };
 
 export function resolveMatcher<T extends StringIndexedObject>(
   settings: ParsedResourceSettings<T>
@@ -574,9 +427,8 @@ export function resolveMatcher<T extends StringIndexedObject>(
           return false;
         }
 
-        const parameterSetting = settings.parameterSettings?.[key];
-        const isEq = parameterSetting ? resolveEqualsFn(parameterSetting) : null
-        return isEq?.(desiredParameter, currentParameter) ?? currentParameter === desiredParameter;
+        const isEq = settings.parameterSettings[key]?.isEqual;
+        return isEq ? isEq(desiredParameter, currentParameter) : currentParameter === desiredParameter;
       })
     })
     : settings.allowMultiple.matcher

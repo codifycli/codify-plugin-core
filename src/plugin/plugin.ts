@@ -79,9 +79,7 @@ export class Plugin {
       minSupportedCliVersion: this.minSupportedCliVersion,
       resourceDefinitions: [...this.resourceControllers.values()]
         .map((r) => {
-          const sensitiveParameters = Object.entries(r.settings.parameterSettings ?? {})
-            .filter(([, v]) => v?.isSensitive)
-            .map(([k]) => k);
+          const sensitiveParameters = [...r.parsedSettings.sensitiveParameters];
 
           // Here we add '*' if the resource is sensitive but no sensitive parameters are found. This works because the import
           // sensitivity check only checks for the existance of a sensitive parameter whereas the parameter blocking one blocks
@@ -123,9 +121,7 @@ export class Plugin {
     // Here we add '*' if the resource is sensitive but no sensitive parameters are found. This works because the import
     // sensitivity check only checks for the existance of a sensitive parameter whereas the parameter blocking one blocks
     // on a specific sensitive parameter.
-    const sensitiveParameters = Object.entries(resource.settings.parameterSettings ?? {})
-      .filter(([, v]) => v?.isSensitive)
-      .map(([k]) => k);
+    const sensitiveParameters = [...resource.parsedSettings.sensitiveParameters];
 
     if (resource.settings.isSensitive && sensitiveParameters.length === 0) {
       sensitiveParameters.push('*');

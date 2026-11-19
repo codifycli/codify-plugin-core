@@ -8,7 +8,10 @@ import {
   TestResource,
   TestStatefulParameter
 } from '../utils/test-utils.test.js';
-import { ArrayParameterSetting, ParameterSetting, ResourceSettings } from '../resource/resource-settings.js';
+import { ParameterSetting, ResourceSettings } from '../resource/resource-settings.js';
+import { parseParameterSettings } from '../resource/parsed-parameter-setting.js';
+
+const controllerFor = (sp: any) => parseParameterSettings('test', { p: { stateful: sp } }).p.stateful!;
 import { ResourceController } from '../resource/resource-controller.js';
 import { StatefulParameterController } from './stateful-parameter-controller.js';
 
@@ -22,7 +25,7 @@ describe('Stateful parameter tests', () => {
     expect(plan.changeSet.parameterChanges.length).to.eq(1);
 
     const parameter = spy(new TestArrayStatefulParameter());
-    const controller = new StatefulParameterController(parameter);
+    const controller = controllerFor(parameter);
     await controller.add((plan.desiredConfig! as any).propZ, plan);
 
     expect(parameter.addItem.callCount).to.eq(3);
@@ -41,7 +44,7 @@ describe('Stateful parameter tests', () => {
     expect(plan.changeSet.parameterChanges.length).to.eq(1);
 
     const parameter = spy(new TestArrayStatefulParameter());
-    const controller = new StatefulParameterController(parameter);
+    const controller = controllerFor(parameter);
     await controller.remove((plan.currentConfig as any).propZ, plan);
 
     expect(parameter.addItem.called).to.be.false;
@@ -53,7 +56,7 @@ describe('Stateful parameter tests', () => {
     const plan = testPlan<TestConfig>({
       desired: { propZ: ['a', 'c', 'd', 'e', 'f'] }, // b to remove, d, e, f to add
       current: [{ propZ: ['a', 'b', 'c'] }],
-      settings: { id: 'type', parameterSettings: { propZ: { type: 'stateful', definition: parameter } } },
+      settings: { id: 'type', parameterSettings: { propZ: { stateful: parameter } } },
     });
 
     expect(plan.changeSet.operation).to.eq(ResourceOperation.MODIFY);
@@ -66,7 +69,7 @@ describe('Stateful parameter tests', () => {
 
 
     const testParameter = spy(parameter);
-    const controller = new StatefulParameterController(testParameter);
+    const controller = controllerFor(testParameter);
     await controller.modify((plan.desiredConfig as any).propZ, (plan.currentConfig as any).propZ, plan);
 
     expect(testParameter.addItem.calledThrice).to.be.true;
@@ -75,7 +78,7 @@ describe('Stateful parameter tests', () => {
 
   it('isElementEqual is called for modifies', async () => {
     const testParameter = spy(new class extends TestArrayStatefulParameter {
-      getSettings(): ArrayParameterSetting {
+      getSettings(): ParameterSetting {
         return {
           type: 'array',
           isElementEqual: (desired, current) => current.includes(desired),
@@ -86,7 +89,7 @@ describe('Stateful parameter tests', () => {
     const plan = testPlan<TestConfig>({
       desired: { propZ: ['9.12', '9.13'] }, // b to remove, d, e, f to add
       current: [{ propZ: ['9.12.9'] }],
-      settings: { id: 'type', parameterSettings: { propZ: { type: 'stateful', definition: testParameter } } }
+      settings: { id: 'type', parameterSettings: { propZ: { stateful: testParameter } } }
     });
 
     expect(plan.changeSet.operation).to.eq(ResourceOperation.MODIFY);
@@ -97,7 +100,7 @@ describe('Stateful parameter tests', () => {
       operation: ParameterOperation.MODIFY,
     })
 
-    const controller = new StatefulParameterController(testParameter);
+    const controller = controllerFor(testParameter);
     await controller.modify((plan.desiredConfig as any).propZ, (plan.currentConfig as any).propZ, plan);
 
     expect(testParameter.addItem.calledOnce).to.be.true;
@@ -116,7 +119,7 @@ describe('Stateful parameter tests', () => {
     const plan = testPlan<TestConfig>({
       desired: { propZ: '20' },
       current: [{ propZ: '20.17.0' }],
-      settings: { id: 'type', parameterSettings: { propZ: { type: 'stateful', definition: testParameter } } }
+      settings: { id: 'type', parameterSettings: { propZ: { stateful: testParameter } } }
     });
 
     expect(plan.changeSet.operation).to.eq(ResourceOperation.NOOP);
@@ -124,7 +127,7 @@ describe('Stateful parameter tests', () => {
 
   it('isElementEquals test', async () => {
     const testParameter = spy(new class extends TestArrayStatefulParameter {
-      getSettings(): ArrayParameterSetting {
+      getSettings(): ParameterSetting {
         return {
           type: 'array',
           isElementEqual: (desired, current) => current.includes(desired),
@@ -143,7 +146,7 @@ describe('Stateful parameter tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'type',
-          parameterSettings: { nodeVersions: { type: 'stateful', definition: testParameter } }
+          parameterSettings: { nodeVersions: { stateful: testParameter } }
         }
       }
 
@@ -167,8 +170,7 @@ describe('Stateful parameter tests', () => {
     const testParameter = spy(new class extends TestStatefulParameter {
       getSettings(): ParameterSetting {
         return {
-          type: 'string',
-          isEqual: 'version'
+          type: 'version'
         }
       }
 
@@ -181,7 +183,7 @@ describe('Stateful parameter tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'type',
-          parameterSettings: { propA: { type: 'stateful', definition: testParameter } }
+          parameterSettings: { propA: { stateful: testParameter } }
         }
       }
 
@@ -206,7 +208,7 @@ describe('Stateful parameter tests', () => {
       getSettings(): ParameterSetting {
         return {
           type: 'array',
-          isElementEqual: 'version'
+          itemType: 'version'
         }
       }
 
@@ -222,7 +224,7 @@ describe('Stateful parameter tests', () => {
       getSettings(): ResourceSettings<any> {
         return {
           id: 'type',
-          parameterSettings: { propA: { type: 'stateful', definition: testParameter } }
+          parameterSettings: { propA: { stateful: testParameter } }
         }
       }
 

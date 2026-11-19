@@ -3,45 +3,25 @@ import { JSONSchemaType } from 'ajv';
 import { z, ZodObject } from 'zod';
 
 import { StatefulParameterController } from '../stateful-parameter/stateful-parameter-controller.js';
+import { parseParameterSettings, ParsedParameterSetting } from './parsed-parameter-setting.js';
 import {
-  ArrayParameterSetting,
-  DefaultParameterSetting,
   ExampleConfigs,
   InputTransformation,
-  ParameterSetting,
-  resolveElementEqualsFn,
-  resolveEqualsFn,
   resolveMatcher,
-  resolveParameterTransformFn,
   ResourceSettings,
-  StatefulParameterSetting
 } from './resource-settings.js';
 
-export interface ParsedStatefulParameterSetting extends DefaultParameterSetting {
-  type: 'stateful',
-  controller: StatefulParameterController<any, unknown>
-  order?: number,
-  nestedSettings: ParsedParameterSetting;
-}
+export type { ParsedParameterSetting } from './parsed-parameter-setting.js';
 
-export type ParsedArrayParameterSetting = {
-  isElementEqual: (a: unknown, b: unknown) => boolean;
-  isEqual: (a: unknown, b: unknown) => boolean;
-} & ArrayParameterSetting
-
-export type ParsedParameterSetting =
-  {
-    isEqual: (desired: unknown, current: unknown) => boolean;
-  } & (DefaultParameterSetting
-  | ParsedArrayParameterSetting
-  | ParsedStatefulParameterSetting)
-
-export class ParsedResourceSettings<T extends StringIndexedObject> implements ResourceSettings<T> {
+export class ParsedResourceSettings<T extends StringIndexedObject> implements Omit<ResourceSettings<T>, 'parameterSettings'> {
   private cache = new Map<string, unknown>();
   id!: string;
   description?: string;
 
   schema?: Partial<JSONSchemaType<T | any>>;
+
+  /** The original Zod schema when the resource was defined with one. Used to run refinements during validation. */
+  zodSchema?: ZodObject;
   allowMultiple?: {
     identifyingParameters?: string[];
     matcher?: (desired: Partial<T>, current: Partial<T>) => boolean;
@@ -69,10 +49,19 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
     Object.assign(this, rest);
 
     if (schema) {
+      this.zodSchema = schema instanceof ZodObject ? schema : undefined;
       this.schema = schema instanceof ZodObject
         ? z.toJSONSchema(schema.strict(), {
           target: 'draft-7',
+          // Input mode: fields with a .default() are optional for the user
+          io: 'input',
           override(ctx) {
+            // Input mode leaves nested objects open. Keep them closed like output mode unless the object is .loose()
+            const def = (ctx.zodSchema as any)._zod?.def;
+            if (def?.type === 'object' && def.catchall === undefined && ctx.jsonSchema.additionalProperties === undefined) {
+              ctx.jsonSchema.additionalProperties = false;
+            }
+
             if (ctx.path.length === 0) {
               ctx.jsonSchema.title = settings.id;
               ctx.jsonSchema.description = schema.description ?? settings.description ?? `${settings.id} resource. Can be used to manage ${settings.id}`;
@@ -94,99 +83,52 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
     return !this.settings.importAndDestroy?.preventDestroy;
   }
 
-  get statefulParameters(): Map<keyof T, StatefulParameterController<T, T[keyof T]>> {
-    return this.getFromCacheOrCreate('statefulParameters', () => {
-
-      const statefulParameters = Object.entries(this.settings.parameterSettings ?? {})
-        .filter(([, p]) => p?.type === 'stateful')
-        .map(([k, v]) => [
-          k,
-          new StatefulParameterController((v as StatefulParameterSetting).definition)
-        ] as const)
-
-      return new Map(statefulParameters) as Map<keyof T, StatefulParameterController<T, T[keyof T]>>;
-    })
+  /**
+   * The normalized settings of every parameter that has settings (top level or nested), keyed by top level parameter.
+   */
+  get parameterSettings(): Record<keyof T, ParsedParameterSetting> {
+    return this.getFromCacheOrCreate('parameterSettings', () => parseParameterSettings(
+      this.id,
+      (this.settings.parameterSettings ?? {}) as Record<string, any>,
+      this.schema as Record<string, any> | undefined,
+    )) as Record<keyof T, ParsedParameterSetting>;
   }
 
-  get parameterSettings(): Record<keyof T, ParsedParameterSetting> {
-    return this.getFromCacheOrCreate('parameterSetting', () => {
+  get statefulParameters(): Map<keyof T, StatefulParameterController<T, T[keyof T]>> {
+    return this.getFromCacheOrCreate('statefulParameters', () => new Map(
+      Object.entries(this.parameterSettings as Record<string, ParsedParameterSetting>)
+        .filter(([, v]) => v.stateful)
+        .map(([k, v]) => [k, v.stateful!] as const)
+    ) as Map<keyof T, StatefulParameterController<T, T[keyof T]>>);
+  }
 
-      const settings = Object.entries(this.settings.parameterSettings ?? {})
-        .map(([k, v]) => [k, v!] as const)
-        .map(([k, v]) => {
-          v.isEqual = resolveEqualsFn(v);
-
-          if (v.type === 'stateful') {
-            const spController = this.statefulParameters.get(k);
-            const parsed = {
-              ...v,
-              controller: spController,
-              nestedSettings: spController?.parsedSettings,
-            };
-
-            return [k, parsed as ParsedStatefulParameterSetting];
-          }
-
-          if (v.type === 'array') {
-            const parsed = {
-              ...v,
-              isElementEqual: resolveElementEqualsFn(v as ArrayParameterSetting)
-            }
-
-            return [k, parsed as ParsedArrayParameterSetting];
-          }
-
-          return [k, v];
-        })
-
-      return Object.fromEntries(settings);
-    });
+  /** Top level parameters that are sensitive or contain sensitive values. */
+  get sensitiveParameters(): string[] {
+    return Object.entries(this.parameterSettings as Record<string, ParsedParameterSetting>)
+      .filter(([, v]) => v.isSensitive)
+      .map(([k]) => k);
   }
 
   get defaultValues(): Partial<Record<keyof T, unknown>> {
-    return this.getFromCacheOrCreate('defaultValues', () => {
-
-      if (!this.settings.parameterSettings) {
-        return {};
-      }
-
-      const defaultValues = Object.fromEntries(
-        Object.entries(this.settings.parameterSettings)
-          .filter(([, v]) => v!.default !== undefined)
-          .map(([k, v]) => [k, v!.default] as const)
-      )
-
-      const statefulParameterDefaultValues = Object.fromEntries(
-        Object.entries(this.settings.parameterSettings)
-          .filter(([, v]) => v?.type === 'stateful')
-          .filter(([, v]) => (v as StatefulParameterSetting).definition.getSettings().default !== undefined)
-          .map(([k, v]) => [k, (v as StatefulParameterSetting).definition.getSettings().default] as const)
-      )
-
-      return { ...defaultValues, ...statefulParameterDefaultValues } as Partial<Record<keyof T, unknown>>;
-    });
+    return this.getFromCacheOrCreate('defaultValues', () => Object.fromEntries(
+      Object.entries(this.parameterSettings as Record<string, ParsedParameterSetting>)
+        .filter(([, v]) => v.default !== undefined)
+        .map(([k, v]) => [k, v.default] as const)
+    ) as Partial<Record<keyof T, unknown>>);
   }
 
   get inputTransformations(): Partial<Record<keyof T, InputTransformation>> {
-    return this.getFromCacheOrCreate('inputTransformations', () => {
-      if (!this.settings.parameterSettings) {
-        return {};
-      }
-
-      return Object.fromEntries(
-        Object.entries(this.settings.parameterSettings)
-          .filter(([_, v]) => resolveParameterTransformFn(v!) !== undefined)
-          .map(([k, v]) => [k, resolveParameterTransformFn(v!)] as const)
-      ) as Record<keyof T, InputTransformation>;
-    });
+    return this.getFromCacheOrCreate('inputTransformations', () => Object.fromEntries(
+      Object.entries(this.parameterSettings as Record<string, ParsedParameterSetting>)
+        .filter(([, v]) => v.transformation !== undefined)
+        .map(([k, v]) => [k, v.transformation] as const)
+    ) as Partial<Record<keyof T, InputTransformation>>);
   }
 
   get statefulParameterOrder(): Map<keyof T, number> {
     return this.getFromCacheOrCreate('stateParameterOrder', () => {
-
-      const entries = Object.entries(this.settings.parameterSettings ?? {})
-        .filter(([, v]) => v?.type === 'stateful')
-        .map(([k, v]) => [k, v as StatefulParameterSetting] as const)
+      const entries = Object.entries(this.parameterSettings as Record<string, ParsedParameterSetting>)
+        .filter(([, v]) => v.stateful)
 
       const orderedEntries = entries.filter(([, v]) => v.order !== undefined)
       const unorderedEntries = entries.filter(([, v]) => v.order === undefined)
@@ -207,19 +149,11 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Re
   }
 
   private validateSettings(): void {
-    // validate parameter settings
-    if (this.settings.parameterSettings) {
-      for (const [k, v] of Object.entries(this.settings.parameterSettings)) {
-        if (!v) {
-          throw new Error(`Resource: ${this.id}. Parameter setting ${k} was left undefined`);
-        }
+    // Parsing validates every parameter setting (paths, nested settings, stateful parameters)
+    const parsedParameters = this.parameterSettings as Record<string, ParsedParameterSetting>;
 
-        this.validateParameterEqualsFn(v, k);
-      }
-    }
-
-    if (Object.entries(this.parameterSettings).some(([k, v]) =>
-      v.type === 'stateful'
+    if (Object.entries(parsedParameters).some(([k, v]) =>
+      v.stateful
       && typeof this.settings.allowMultiple === 'object' && this.settings.allowMultiple?.identifyingParameters?.includes(k))) {
       throw new Error(`Resource: ${this.id}. Stateful parameters are not allowed to be identifying parameters for allowMultiple.`)
     }
@@ -285,20 +219,6 @@ ${JSON.stringify(requiredParametersNotInSchema, null, 2)}`)
 ${JSON.stringify(refreshValueNotInRefreshKey, null, 2)}`)
       }
     }
-  }
-
-  private validateParameterEqualsFn(parameter: ParameterSetting, key: string): void {
-    if (parameter.type === 'stateful') {
-      const nestedSettings = (parameter as StatefulParameterSetting).definition.getSettings();
-
-      if (nestedSettings.type === 'stateful') {
-        throw new Error(`Nested stateful parameters are not allowed for ${key}`);
-      }
-
-      this.validateParameterEqualsFn(nestedSettings, key);
-    }
-
-    // The rest of the types have defaults set already
   }
 
   private getFromCacheOrCreate<T2>(key: string, create: () => T2): T2 {

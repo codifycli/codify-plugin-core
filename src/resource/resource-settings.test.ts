@@ -9,7 +9,7 @@ import {
   TestResource,
   TestStatefulParameter
 } from '../utils/test-utils.test.js';
-import { ArrayParameterSetting, ParameterSetting, ResourceSettings } from './resource-settings.js';
+import { ParameterSetting, ResourceSettings } from './resource-settings.js';
 import { ResourceController } from './resource-controller.js';
 import os from 'node:os';
 import path from 'node:path';
@@ -29,7 +29,7 @@ describe('Resource parameter tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameter }
+            propA: { stateful: statefulParameter }
           },
         };
       }
@@ -75,7 +75,7 @@ describe('Resource parameter tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameterSpy }
+            propA: { stateful: statefulParameterSpy }
           },
         }
       }
@@ -110,7 +110,7 @@ describe('Resource parameter tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameterSpy },
+            propA: { stateful: statefulParameterSpy },
             propB: { canModify: true },
           }
         };
@@ -157,7 +157,7 @@ describe('Resource parameter tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameter }
+            propA: { stateful: statefulParameter }
           },
         }
       }
@@ -199,7 +199,7 @@ describe('Resource parameter tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameterSpy },
+            propA: { stateful: statefulParameterSpy },
           },
         }
       }
@@ -234,7 +234,7 @@ describe('Resource parameter tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameterSpy }
+            propA: { stateful: statefulParameterSpy }
           },
         }
       }
@@ -263,7 +263,7 @@ describe('Resource parameter tests', () => {
           parameterSettings: {
             hosts: {
               type: 'array',
-              isElementEqual: 'object',
+              itemType: 'object',
               filterInStatelessMode: (desired, current) => {
                 return current.filter((d) => desired.some((c) => d.Host === c.Host))
               }
@@ -349,7 +349,7 @@ describe('Resource parameter tests', () => {
 
   it('Uses isElementEqual for stateless mode filtering if available', async () => {
     const statefulParameter = new class extends TestArrayStatefulParameter {
-      getSettings(): ArrayParameterSetting {
+      getSettings(): ParameterSetting {
         return {
           type: 'array',
           isElementEqual: (desired, current) => {
@@ -371,7 +371,7 @@ describe('Resource parameter tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameterSpy }
+            propA: { stateful: statefulParameterSpy }
           },
         }
       }
@@ -428,11 +428,11 @@ describe('Resource parameter tests', () => {
           id: 'resourceType',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameterA, order: 3 },
-            propB: { type: 'stateful', definition: statefulParameterB, order: 1 },
-            propC: { type: 'stateful', definition: statefulParameterC, order: 2 },
-            propD: { type: 'stateful', definition: statefulParameterD },
-            propE: { type: 'stateful', definition: statefulParameterE }
+            propA: { stateful: statefulParameterA, order: 3 },
+            propB: { stateful: statefulParameterB, order: 1 },
+            propC: { stateful: statefulParameterC, order: 2 },
+            propD: { stateful: statefulParameterD },
+            propE: { stateful: statefulParameterE }
           },
         }
       }
@@ -507,9 +507,9 @@ describe('Resource parameter tests', () => {
           id: 'resourceType',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'stateful', definition: statefulParameterA, order: 3 },
-            propB: { type: 'stateful', definition: statefulParameterB, order: 1 },
-            propC: { type: 'stateful', definition: statefulParameterC, order: 2 },
+            propA: { stateful: statefulParameterA, order: 3 },
+            propB: { stateful: statefulParameterB, order: 1 },
+            propC: { stateful: statefulParameterC, order: 2 },
           },
           removeStatefulParametersBeforeDestroy: true,
         }
@@ -774,7 +774,7 @@ describe('Resource parameter tests', () => {
           id: 'resourceType',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propA: { type: 'string', isEqual: 'version' }
+            propA: { type: 'string', type: 'version' }
           }
         }
       }
@@ -992,7 +992,7 @@ describe('Resource parameter tests', () => {
           id: 'resourceType',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propD: { type: 'stateful', definition: sp }
+            propD: { stateful: sp }
           }
         }
       }

@@ -1,13 +1,7 @@
 import { StringIndexedObject } from '@codifycli/schemas';
 
 import { Plan } from '../plan/plan.js';
-import { ParsedArrayParameterSetting, ParsedParameterSetting, } from '../resource/parsed-resource-settings.js';
-import {
-  ArrayParameterSetting,
-  ParameterSetting,
-  resolveElementEqualsFn,
-  resolveEqualsFn,
-} from '../resource/resource-settings.js';
+import type { ParsedParameterSetting } from '../resource/parsed-parameter-setting.js';
 import { ArrayStatefulParameter, StatefulParameter } from './stateful-parameter.js';
 
 /**
@@ -16,26 +10,20 @@ import { ArrayStatefulParameter, StatefulParameter } from './stateful-parameter.
  */
 export class StatefulParameterController<T extends StringIndexedObject, V extends T[keyof T]> {
   readonly sp: ArrayStatefulParameter<T, V> | StatefulParameter<T, V>
-  readonly settings: ParameterSetting;
+
+  /** The merged settings (stateful parameter defaults + resource level settings) */
   readonly parsedSettings: ParsedParameterSetting
 
   private readonly isArrayStatefulParameter: boolean;
 
   constructor(
-    statefulParameter: ArrayStatefulParameter<T, V> | StatefulParameter<T, V>
+    statefulParameter: ArrayStatefulParameter<T, V> | StatefulParameter<T, V>,
+    parsedSettings: ParsedParameterSetting,
   ) {
     this.sp = statefulParameter;
-    this.settings = statefulParameter.getSettings();
-    this.isArrayStatefulParameter = this.calculateIsArrayStatefulParameter();
-
-    this.parsedSettings = (this.isArrayStatefulParameter || this.settings.type === 'array') ? {
-      ...this.settings,
-      isEqual: resolveEqualsFn(this.settings),
-      isElementEqual: resolveElementEqualsFn(this.settings as ArrayParameterSetting)
-    } as ParsedParameterSetting : {
-      ...this.settings,
-      isEqual: resolveEqualsFn(this.settings),
-    };
+    this.parsedSettings = parsedSettings;
+    this.isArrayStatefulParameter = statefulParameter instanceof ArrayStatefulParameter
+      || ('addItem' in statefulParameter && 'removeItem' in statefulParameter);
   }
 
   async refresh(desired: V | null, config: Partial<T>): Promise<V | null> {
@@ -62,26 +50,13 @@ export class StatefulParameterController<T extends StringIndexedObject, V extend
     }
 
     const sp = this.sp as ArrayStatefulParameter<any, any>;
-    const settings = this.parsedSettings as ParsedArrayParameterSetting;
+    const isElementEqual = this.parsedSettings.isElementEqual ?? ((a: unknown, b: unknown) => a === b);
     const newValues = newValue as Array<unknown>[];
     const previousValues = previousValue as Array<unknown>[];
 
     // TODO: I don't think this works with duplicate elements. Solve at another time
-    const valuesToAdd = newValues.filter((n) => !previousValues.some((p) => {
-      if (settings.isElementEqual) {
-        return settings.isElementEqual!(n, p);
-      }
-
-      return n === p;
-    }));
-
-    const valuesToRemove = previousValues.filter((p) => !newValues.some((n) => {
-      if (settings.isElementEqual) {
-        return settings.isElementEqual!(n, p);
-      }
-
-      return n === p;
-    }));
+    const valuesToAdd = newValues.filter((n) => !previousValues.some((p) => isElementEqual(n, p)));
+    const valuesToRemove = previousValues.filter((p) => !newValues.some((n) => isElementEqual(n, p)));
 
     for (const value of valuesToAdd) {
       await sp.addItem(value, plan)
@@ -103,9 +78,5 @@ export class StatefulParameterController<T extends StringIndexedObject, V extend
     for (const value of valuesToRemove) {
       await sp.removeItem(value as V, plan);
     }
-  }
-
-  private calculateIsArrayStatefulParameter() {
-    return 'addItem' in this.sp && 'removeItem' in this.sp;
   }
 }

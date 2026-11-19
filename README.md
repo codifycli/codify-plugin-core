@@ -181,16 +181,11 @@ class BrewFormulaParameter extends StatefulParameter<BrewConfig, string[]> {
 Register in resource settings:
 
 ```typescript
-getSettings()
-:
-ResourceSettings < BrewConfig > {
+getSettings(): ResourceSettings<BrewConfig> {
   return {
     id: 'homebrew',
     parameterSettings: {
-      formulas: {
-        type: 'stateful',
-        implementation: new BrewFormulaParameter()
-      }
+      formulas: { stateful: new BrewFormulaParameter(), order: 1 },
     }
   };
 }
@@ -244,15 +239,20 @@ getSettings(): ResourceSettings<MyConfig> {
     // Optional: supported Linux distributions
     linuxDistros: ['ubuntu', 'debian', 'fedora'],
 
-    // Schema for validation (JSON Schema or Zod)
-    schema: {
-      type: 'object',
-      properties: {
-        version: { type: 'string' },
-        path: { type: 'string' }
-      },
-      required: ['version']
-    },
+    // Schema for validation. Zod is preferred: the config type is inferred from it and
+    // .describe() text is used for docs and the editor.
+    schema: z.object({
+      version: z.string().describe('The version to install'),
+      path: z.string().optional().describe('Install location'),
+      apiKey: z.string().optional().describe('API key used to authenticate'),
+      envFiles: z.array(z.object({
+        name: z.string().describe('File name'),
+        contents: z.array(z.object({
+          key: z.string().describe('Variable name'),
+          value: z.string().describe('Variable value'),
+        })).describe('Variables in the file'),
+      })).optional().describe('Env files to manage'),
+    }),
 
     // Allow multiple instances
     allowMultiple: {
@@ -260,34 +260,66 @@ getSettings(): ResourceSettings<MyConfig> {
       matcher: (desired, current) => desired.name === current.name
     },
 
-    // Prevent resource from being destroyed
-    canDestroy: false,
-
     // Mark as sensitive (prevents auto-import)
     isSensitive: true,
 
     // Resource dependencies
     dependencies: ['other-resource-id'],
 
-    // Per-parameter settings
+    // Per-parameter settings. Only declare what the schema can't express.
     parameterSettings: {
-      path: {
-        inputTransformation: {
-          to: (input) => untildify(input),    // Expand ~
-          from: (current) => tildify(current)  // Convert to ~
-        }
-      },
-      apiKey: {
-        isSensitive: true  // Hide in plan output
-      },
-      tags: {
-        type: 'array',
-        isElementEqual: (a, b) => a.name === b.name
-      }
+      path: { type: 'directory' },          // ~ expansion + path aware equality
+      apiKey: { isSensitive: true },        // hidden in plan output
+      envFiles: { canModify: true, key: 'name' },
+      // Nested paths (typed, they autocomplete) for nested values that need settings
+      'envFiles[*].contents': { key: 'key' },
+      'envFiles[*].contents[*].value': { isSensitive: true },
     }
   };
 }
 ```
+
+### Parameter settings
+
+Keys are top level parameter names or typed paths into the config (`a[*]` = every array element,
+`a.*` = every record value). Typos in paths fail to compile and paths are validated against the schema at runtime.
+
+| Setting | Where | Description |
+|---|---|---|
+| `type` | any | `string`, `number`, `boolean`, `directory`, `version`, `array`, `object`, `any`. Picks the equality (and for `directory`/`string`/`boolean` the input transformation). `array`/`object` are inferred from the schema. |
+| `isSensitive` | any | Mask in the plan and gate imports. On a nested path only those values are sensitive. |
+| `isEqual` | any | Custom equality. `ParameterEquals.<type>` exposes the built in ones. |
+| `itemType`, `isElementEqual` | arrays | Element type / element equality. Arrays are compared ignoring order. |
+| `key` | arrays of objects | Field(s) identifying an element. Drives stateless filtering, so a changed element is a modify. |
+| `filterInStatelessMode` | arrays, objects | Defaults to true: arrays keep matching elements, objects keep the desired keys. Function or `false` to customize. |
+| `default`, `transformation`, `canModify`, `setting` | top level | Default value, bi-directional input transformation, modify instead of recreate, exclude from the plan. |
+| `stateful`, `order` | top level | Attach a `StatefulParameter`/`ArrayStatefulParameter` and its apply order. Its own `getSettings()` provides defaults. |
+
+Nested settings affect equality, element identity and sensitivity. Defaults, transformations, `canModify` and
+stateful parameters stay on top level parameters.
+
+### Zod schemas
+
+- `.describe()` / `.meta({ title, description, examples, deprecated })` must come **after** checks like `.min()`:
+  Zod drops metadata when a check is chained after it. `findUndescribedFields(jsonSchema)` reports undocumented
+  fields (including ones lost this way) so build scripts can enforce documentation.
+- Fields with `.default()` are optional for users (the schema is converted in input mode).
+- `.refine()` / `.superRefine()` are run during validation in addition to the JSON schema checks.
+
+### Migrating from 1.x
+
+| 1.x | 2.x |
+|---|---|
+| `{ type: 'stateful', definition: new X(), order: 1 }` | `{ stateful: new X(), order: 1 }` |
+| `{ type: 'string', isEqual: 'version' }` | `{ type: 'version' }` (or `isEqual: ParameterEquals.version`) |
+| `{ isElementEqual: 'object' }` | `{ itemType: 'object' }` |
+| `isElementEqual` + `filterInStatelessMode` comparing an id field | `key: 'id'` |
+| `isSensitive` on a whole array/object to hide nested secrets | `'param[*].secret': { isSensitive: true }` |
+| `ArrayParameterSetting`, `DefaultParameterSetting` types | `ParameterSetting` (`StatefulParameterSetting` for `getSettings()` of stateful parameters) |
+
+Behaviour changes: parameters whose schema type is `array`/`object` now use set/deep equality even without settings;
+object parameters are filtered to the declared keys in stateless mode; plan parameter changes carry `sensitivePaths`
+for nested sensitive values (`isSensitive` stays true so older CLIs mask the whole value).
 
 ## API Reference
 
