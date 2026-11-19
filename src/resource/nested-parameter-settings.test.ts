@@ -50,6 +50,9 @@ describe('Parameter paths', () => {
       'dir', 'envFiles', 'envFiles[*]', 'envFiles[*].name', 'envFiles[*].contents[*].value',
     ];
     const mcpPaths: Array<ConfigPath<McpConfig>> = ['mcpServers[*].env.*', 'mcpServers[*].httpHeaders.*'];
+    const looseSchema = z.object({ settings: z.looseObject({ auth: z.object({ token: z.string() }).optional() }) });
+    const loosePaths: Array<ConfigPath<z.infer<typeof looseSchema>>> = ['settings.auth.token', 'settings.*'];
+    expect(loosePaths.length).to.eq(2);
 
     const settings: ParameterSettings<EnvFilesConfig> = {
       envFiles: { key: 'name' },

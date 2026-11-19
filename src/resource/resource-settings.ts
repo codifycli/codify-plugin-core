@@ -370,9 +370,10 @@ export interface NestedParameterSetting {
    * (~20.18.0, +18.9.0, +16.3.1, -22.1.3, -12.1.0)<br>
    * With filtering the plan is: (~20.18.0, +18.9.0, +16.3.1)
    *
-   * Pass a function for custom filtering, or false to disable it.
+   * Pass a function for custom filtering, or false to disable it. For objects the function receives and returns
+   * objects (typed as arrays for convenience since arrays are by far the common case).
    */
-  filterInStatelessMode?: ((desired: any, current: any) => any) | boolean;
+  filterInStatelessMode?: ((desired: any[], current: any[]) => any[]) | boolean;
 }
 
 /**

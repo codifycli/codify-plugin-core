@@ -27,10 +27,13 @@ type PathFrom<T, D extends number> =
           : T extends ReadonlyArray<infer E>
             ? '[*]' | `[*]${PathTail<NonNullable<E>, PrevDepth[D]>}`
             : T extends object
-              ? string extends keyof T
-                ? '.*' | `.*${PathTail<NonNullable<T[keyof T & string]>, PrevDepth[D]>}`
-                : { [K in keyof T & string]-?: `.${K}${PathTail<NonNullable<T[K]>, PrevDepth[D]>}` | `.${K}` }[keyof T & string]
+              // Named keys, plus `.*` when the object also has an index signature (records, loose objects)
+              ? { [K in KnownKeys<T>]-?: `.${K}${PathTail<NonNullable<T[K]>, PrevDepth[D]>}` | `.${K}` }[KnownKeys<T>]
+                | (string extends keyof T ? '.*' | `.*${PathTail<NonNullable<T[string & keyof T]>, PrevDepth[D]>}` : never)
               : never;
+
+/** The named (non index signature) string keys of an object type. */
+type KnownKeys<T> = keyof { [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K] } & string;
 
 /**
  * Every top level parameter name and nested path of a config type `T`. For example:
