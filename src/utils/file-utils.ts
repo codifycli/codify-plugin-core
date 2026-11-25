@@ -7,6 +7,7 @@ import { finished } from 'node:stream/promises';
 import { ApplyNotes } from '../common/apply-notes.js';
 import { CodifyCliSender } from '../messages/sender.js';
 import { Utils } from './index.js';
+import { buildPathDeclaration } from './shell-escape.js';
 
 const SPACE_REGEX = /^\s*$/
 
@@ -70,6 +71,9 @@ ${lines.join('\n')}`)
    * @param prepend - Whether to prepend the path to the existing PATH variable.
    */
   static async addPathToShellRc(value: string, prepend: boolean): Promise<void> {
+    // Validate before anything else: the value ends up in the user's shell startup file.
+    const declaration = buildPathDeclaration(value, prepend);
+
     await FileUtils.createShellRcIfNotExists();
 
     if (await Utils.isDirectoryOnPath(value)) {
@@ -79,11 +83,7 @@ ${lines.join('\n')}`)
     const shellRc = Utils.getPrimaryShellRc();
     console.log(`Saving path: ${value} to ${shellRc}`);
 
-    if (prepend) {
-      await fs.appendFile(shellRc, `\nexport PATH=$PATH:${value};`, { encoding: 'utf8' });
-    } else {
-      await fs.appendFile(shellRc, `\nexport PATH=${value}:$PATH;`, { encoding: 'utf8' });
-    }
+    await fs.appendFile(shellRc, `\n${declaration}`, { encoding: 'utf8' });
 
     CodifyCliSender.sendApplyNote(ApplyNotes.sourceShellRc());
   }
