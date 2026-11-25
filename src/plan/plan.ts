@@ -8,12 +8,7 @@ import {
 } from '@codifycli/schemas';
 import { v4 as uuidV4 } from 'uuid';
 
-import {
-  ParsedArrayParameterSetting,
-  ParsedResourceSettings,
-  ParsedStatefulParameterSetting
-} from '../resource/parsed-resource-settings.js';
-import { ArrayParameterSetting, ResourceSettings } from '../resource/resource-settings.js';
+import { ParsedResourceSettings } from '../resource/parsed-resource-settings.js';
 import { ChangeSet } from './change-set.js';
 
 /**
@@ -311,7 +306,7 @@ export class Plan<T extends StringIndexedObject> {
     desired: Partial<T> | null,
     current: Partial<T> | null,
     state: Partial<T> | null,
-    settings: ResourceSettings<T>,
+    settings: ParsedResourceSettings<T>,
     isStateful: boolean,
   }): Partial<T> | null {
     const {
@@ -332,31 +327,30 @@ export class Plan<T extends StringIndexedObject> {
     }
 
     // For stateful mode, we're done after filtering by the keys of desired + state. Stateless mode
-    // requires additional filtering for stateful parameter arrays and objects.
+    // requires additional filtering for arrays and objects.
     if (isStateful && desired) {
       return filteredCurrent;
     }
 
-    // We also want to filter parameters when in delete mode. We don't want to delete parameters that
-    // are not specified in the original config.
-    if (isStateful && !desired) {
-      const arrayStatefulParameters = Object.fromEntries(
-        Object.entries(filteredCurrent)
-          .filter(([k, v]) => isArrayParameterWithFiltering(k, v))
-          .map(([k, v]) => [k, filterArrayParameterForDeletes(k, v)])
-      )
-
-      return { ...filteredCurrent, ...arrayStatefulParameters }
-    }
-
-    // TODO: Add object handling here in addition to arrays in the future
-    const arrayStatefulParameters = Object.fromEntries(
+    // We also want to filter parameters when in delete mode. We don't want to delete parameters (array elements,
+    // object keys) that are not specified in the original config. In stateless mode filter by desired.
+    const filterBy = isStateful ? state : desired;
+    const filteredValues = Object.fromEntries(
       Object.entries(filteredCurrent)
-        .filter(([k, v]) => isArrayParameterWithFiltering(k, v))
-        .map(([k, v]) => [k, filterArrayParameterForStatelessMode(k, v)])
+        .map(([k, v]) => [k, v, settings.parameterSettings[k]?.filterInStatelessMode] as const)
+        .filter(([k, v, filter]) => filter && isSameShape(filterBy?.[k], v))
+        .map(([k, v, filter]) => [k, filter!(filterBy![k], v)])
     )
 
-    return { ...filteredCurrent, ...arrayStatefulParameters }
+    return { ...filteredCurrent, ...filteredValues }
+
+    function isSameShape(a: unknown, b: unknown): boolean {
+      if (Array.isArray(a) || Array.isArray(b)) {
+        return Array.isArray(a) && Array.isArray(b);
+      }
+
+      return a !== null && b !== null && typeof a === 'object' && typeof b === 'object';
+    }
 
     function filterCurrent(): Partial<T> | null {
       if (!current) {
@@ -377,111 +371,6 @@ export class Plan<T extends StringIndexedObject> {
         Object.entries(current)
           .filter(([k]) => keys.has(k))
       ) as Partial<T>;
-    }
-
-    function getFilterParameter(k: string): ((desired: any[], current: any[]) => any[]) | boolean | undefined {
-      if (settings.parameterSettings?.[k]?.type === 'stateful') {
-        const statefulSetting = settings.parameterSettings[k] as ParsedStatefulParameterSetting;
-
-        if (statefulSetting.nestedSettings.type === 'array') {
-          return (statefulSetting.nestedSettings as ArrayParameterSetting).filterInStatelessMode
-        }
-      }
-
-      if (settings.parameterSettings?.[k]?.type === 'array') {
-        return (settings.parameterSettings?.[k] as ArrayParameterSetting).filterInStatelessMode;
-      }
-
-      return undefined;
-    }
-
-    function isArrayParameterWithFiltering(k: string, v: T[keyof T]): boolean {
-      const filterParameter = getFilterParameter(k);
-
-      if (settings.parameterSettings?.[k]?.type === 'stateful') {
-        const statefulSetting = settings.parameterSettings[k] as ParsedStatefulParameterSetting;
-        return statefulSetting.nestedSettings.type === 'array' &&
-          (filterParameter ?? true)
-          && Array.isArray(v);
-      }
-
-      return settings.parameterSettings?.[k]?.type === 'array'
-        && (filterParameter ?? true)
-        && Array.isArray(v);
-    }
-
-    // For stateless mode, we must filter the current array so that the diff algorithm will not detect any deletes
-    function filterArrayParameterForStatelessMode(k: string, v: unknown[]): unknown[] {
-      const desiredArray = desired![k] as unknown[];
-      const matcher = settings.parameterSettings![k]!.type === 'stateful'
-        ? ((settings.parameterSettings![k] as ParsedStatefulParameterSetting)
-          .nestedSettings as ParsedArrayParameterSetting)
-          .isElementEqual
-        : (settings.parameterSettings![k] as ParsedArrayParameterSetting)
-          .isElementEqual
-
-      const desiredCopy = [...desiredArray];
-      const currentCopy = [...v];
-
-      const defaultFilterMethod = ((desired: any[], current: any[]) => {
-        const result = [];
-
-        for (let counter = desired.length - 1; counter >= 0; counter--) {
-          const idx = currentCopy.findIndex((e2) => matcher(desired[counter], e2))
-
-          if (idx === -1) {
-            continue;
-          }
-
-          desired.splice(counter, 1)
-          const [element] = current.splice(idx, 1)
-          result.push(element)
-        }
-
-        return result;
-      })
-
-      const filterParameter = getFilterParameter(k);
-      return typeof filterParameter === 'function'
-        ? filterParameter(desiredCopy, currentCopy)
-        : defaultFilterMethod(desiredCopy, currentCopy);
-    }
-
-    function filterArrayParameterForDeletes(k: string, v: unknown[]): unknown[] {
-      const stateArray = state![k] as unknown[];
-      const matcher = settings.parameterSettings![k]!.type === 'stateful'
-        ? ((settings.parameterSettings![k] as ParsedStatefulParameterSetting)
-          .nestedSettings as ParsedArrayParameterSetting)
-          .isElementEqual
-        : (settings.parameterSettings![k] as ParsedArrayParameterSetting)
-          .isElementEqual
-
-      const stateCopy = [...stateArray];
-      const currentCopy = [...v];
-
-      const defaultFilterMethod = ((state: any[], current: any[]) => {
-        const result = [];
-
-        for (let counter = state.length - 1; counter >= 0; counter--) {
-          const idx = currentCopy.findIndex((e2) => matcher(state[counter], e2))
-
-          if (idx === -1) {
-            continue;
-          }
-
-          state.splice(counter, 1)
-          const [element] = current.splice(idx, 1)
-          result.push(element)
-        }
-
-        return result;
-      })
-
-
-      const filterParameter = getFilterParameter(k);
-      return typeof filterParameter === 'function'
-        ? filterParameter(stateCopy, currentCopy)
-        : defaultFilterMethod(stateCopy, currentCopy);
     }
   }
 

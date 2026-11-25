@@ -2,7 +2,8 @@ import { Resource } from './resource.js';
 import { OS, ResourceOperation } from '@codifycli/schemas';
 import { spy } from 'sinon';
 import { describe, expect, it } from 'vitest'
-import { ArrayParameterSetting, ParameterSetting, ResourceSettings } from './resource-settings.js';
+import { ParameterSetting, ResourceSettings } from './resource-settings.js';
+import { ParameterEquals } from './parsed-parameter-setting.js';
 import { CreatePlan, DestroyPlan, ModifyPlan } from '../plan/plan-types.js';
 import { ParameterChange } from '../plan/change-set.js';
 import { ResourceController } from './resource-controller.js';
@@ -239,7 +240,7 @@ describe('Resource tests', () => {
           dependencies: ['homebrew', 'python'],
           parameterSettings: {
             propA: { canModify: true },
-            propB: { type: 'stateful', definition: statefulParameter },
+            propB: { stateful: statefulParameter },
             propC: { isEqual: (a, b) => true },
           }
         }
@@ -262,7 +263,7 @@ describe('Resource tests', () => {
           dependencies: ['homebrew', 'python'],
           parameterSettings: {
             propA: { canModify: true },
-            propB: { type: 'stateful', definition: statefulParameter },
+            propB: { stateful: statefulParameter },
             propC: { isEqual: (a, b) => true },
           }
         }
@@ -448,7 +449,7 @@ describe('Resource tests', () => {
     }
 
     const parameter2 = new class extends ArrayStatefulParameter<any, any> {
-      override getSettings(): ArrayParameterSetting {
+      override getSettings(): ParameterSetting {
         return {
           type: 'array',
           isElementEqual: (desired, current) => current.includes(desired),
@@ -475,8 +476,8 @@ describe('Resource tests', () => {
           id: 'nvm',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            global: { type: 'stateful', definition: parameter1, order: 2 },
-            nodeVersions: { type: 'stateful', definition: parameter2, order: 1 },
+            global: { stateful: parameter1, order: 2 },
+            nodeVersions: { stateful: parameter2, order: 1 },
           },
         }
       }
@@ -528,8 +529,8 @@ describe('Resource tests', () => {
           id: 'nvm',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            global: { type: 'stateful', definition: parameter1, order: 2 },
-            nodeVersions: { type: 'stateful', definition: parameter2, order: 1 },
+            global: { stateful: parameter1, order: 2 },
+            nodeVersions: { stateful: parameter2, order: 1 },
           },
         }
       }
@@ -773,8 +774,8 @@ describe('Resource tests', () => {
           id: 'path',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            path: { type: 'string', isEqual: 'directory' },
-            paths: { canModify: true, type: 'array', isElementEqual: 'directory' },
+            path: { type: 'string', isEqual: ParameterEquals.directory },
+            paths: { canModify: true, type: 'array', itemType: 'directory' },
             prepend: { default: false, setting: true },
             declarationsOnly: { default: false, setting: true },
           },
@@ -816,8 +817,8 @@ describe('Resource tests', () => {
           id: 'path',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            path: { type: 'string', isEqual: 'directory' },
-            paths: { canModify: true, type: 'array', isElementEqual: 'directory' },
+            path: { type: 'string', isEqual: ParameterEquals.directory },
+            paths: { canModify: true, type: 'array', itemType: 'directory' },
             prepend: { default: false, setting: true },
             declarationsOnly: { default: false, setting: true },
           },
@@ -860,7 +861,7 @@ describe('Resource tests', () => {
           id: 'path',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            path: { type: 'directory' },
+            path: { type: 'string', isEqual: ParameterEquals.directory },
             paths: { canModify: true, type: 'array', itemType: 'directory' },
             prepend: { default: false, setting: true },
             declarationsOnly: { default: false, setting: true },
@@ -985,7 +986,7 @@ describe('Resource tests', () => {
           schema,
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            path: { type: 'directory' },
+            path: { type: 'string', isEqual: ParameterEquals.directory },
             paths: { canModify: true, type: 'array', itemType: 'directory' },
             prepend: { default: false, setting: true },
             declarationsOnly: { default: false, setting: true },

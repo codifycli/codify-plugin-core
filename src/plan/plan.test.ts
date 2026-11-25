@@ -441,8 +441,8 @@ describe('Plan entity tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            formulae: { type: 'stateful', definition: new EmptyArrayParameter(), order: 1 },
-            casks: { type: 'stateful', definition: new EmptyArrayParameter(), order: 2 },
+            formulae: { stateful: new EmptyArrayParameter(), order: 1 },
+            casks: { stateful: new EmptyArrayParameter(), order: 2 },
             skipAlreadyInstalledCasks: { type: 'boolean', default: true, setting: true },
           },
         }
@@ -473,7 +473,7 @@ describe('Plan entity tests', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            formulae: { type: 'stateful', definition: new EmptyArrayParameter(), order: 1 },
+            formulae: { stateful: new EmptyArrayParameter(), order: 1 },
           },
         }
       }

@@ -1,7 +1,14 @@
 import { ParameterOperation, ResourceOperation, StringIndexedObject } from '@codifycli/schemas';
 
-import { ParsedParameterSetting } from '../resource/parsed-resource-settings.js';
-import { ResourceSettings } from '../resource/resource-settings.js';
+import type { ParsedParameterSetting } from '../resource/parsed-parameter-setting.js';
+
+type ParsedSettingsMap<T> = Partial<Record<keyof T, ParsedParameterSetting>>;
+
+function sensitivity(setting?: ParsedParameterSetting): Pick<ParameterChange<any>, 'isSensitive' | 'sensitivePaths'> {
+  return setting?.sensitivePaths?.length
+    ? { isSensitive: true, sensitivePaths: setting.sensitivePaths }
+    : { isSensitive: setting?.isSensitive ?? false };
+}
 
 /**
  * A parameter change describes a parameter level change to a resource.
@@ -28,9 +35,17 @@ export interface ParameterChange<T extends StringIndexedObject> {
   newValue: any | null;
 
   /**
-   * Whether the parameter is sensitive
+   * Whether the parameter is sensitive. True when the whole parameter is sensitive or when any value nested inside it is
+   * sensitive (see {@link sensitivePaths}).
    */
   isSensitive: boolean;
+
+  /**
+   * When only some nested values are sensitive, the paths of those values (ex: `envFiles[*].contents[*].value`).
+   * Clients that understand this field can mask only those values; older clients mask the whole parameter because
+   * {@link isSensitive} is true.
+   */
+  sensitivePaths?: string[];
 }
 
 // Change set will coerce undefined values to null because undefined is not valid JSON
@@ -66,33 +81,33 @@ export class ChangeSet<T extends StringIndexedObject> {
     return new ChangeSet<T>(ResourceOperation.NOOP, []);
   }
 
-  static create<T extends StringIndexedObject>(desired: Partial<T>, settings?: ResourceSettings<T>): ChangeSet<T> {
+  static create<T extends StringIndexedObject>(desired: Partial<T>, settings?: { parameterSettings: ParsedSettingsMap<T> }): ChangeSet<T> {
     const parameterChanges = Object.entries(desired)
       .map(([k, v]) => ({
         name: k,
         operation: ParameterOperation.ADD,
         previousValue: null,
         newValue: v ?? null,
-        isSensitive: settings?.parameterSettings?.[k]?.isSensitive ?? false,
+        ...sensitivity(settings?.parameterSettings?.[k]),
       }))
 
     return new ChangeSet(ResourceOperation.CREATE, parameterChanges);
   }
 
-  static noop<T extends StringIndexedObject>(parameters: Partial<T>, settings?: ResourceSettings<T>): ChangeSet<T> {
+  static noop<T extends StringIndexedObject>(parameters: Partial<T>, settings?: { parameterSettings: ParsedSettingsMap<T> }): ChangeSet<T> {
     const parameterChanges = Object.entries(parameters)
       .map(([k, v]) => ({
         name: k,
         operation: ParameterOperation.NOOP,
         previousValue: v ?? null,
         newValue: v ?? null,
-        isSensitive: settings?.parameterSettings?.[k]?.isSensitive ?? false,
+        ...sensitivity(settings?.parameterSettings?.[k]),
       }))
 
     return new ChangeSet(ResourceOperation.NOOP, parameterChanges);
   }
 
-  static destroy<T extends StringIndexedObject>(current: Partial<T>, settings?: ResourceSettings<T>): ChangeSet<T> {
+  static destroy<T extends StringIndexedObject>(current: Partial<T>, settings?: { parameterSettings: ParsedSettingsMap<T> }): ChangeSet<T> {
     const parameterChanges = Object.entries(current)
       .filter(([k]) => !settings?.parameterSettings?.[k]?.setting)
       .map(([k, v]) => ({
@@ -100,7 +115,7 @@ export class ChangeSet<T extends StringIndexedObject> {
         operation: ParameterOperation.REMOVE,
         previousValue: v ?? null,
         newValue: null,
-        isSensitive: settings?.parameterSettings?.[k]?.isSensitive ?? false,
+        ...sensitivity(settings?.parameterSettings?.[k]),
       }))
 
     return new ChangeSet(ResourceOperation.DESTROY, parameterChanges);
@@ -109,13 +124,13 @@ export class ChangeSet<T extends StringIndexedObject> {
   static calculateModification<T extends StringIndexedObject>(
     desired: Partial<T>,
     current: Partial<T>,
-    parameterSettings: Partial<Record<keyof T, ParsedParameterSetting>> = {},
+    parameterSettings: ParsedSettingsMap<T> = {},
   ): ChangeSet<T> {
     const pc = ChangeSet.calculateParameterChanges(desired, current, parameterSettings);
 
     const statefulParameterKeys = new Set(
       Object.entries(parameterSettings)
-        .filter(([, v]) => v?.type === 'stateful')
+        .filter(([, v]) => v?.stateful)
         .map(([k]) => k)
     )
 
@@ -150,7 +165,7 @@ export class ChangeSet<T extends StringIndexedObject> {
   private static calculateParameterChanges<T extends StringIndexedObject>(
     desiredParameters: Partial<T>,
     currentParameters: Partial<T>,
-    parameterOptions?: Partial<Record<keyof T, ParsedParameterSetting>>,
+    parameterOptions?: ParsedSettingsMap<T>,
   ): ParameterChange<T>[] {
     const parameterChangeSet = new Array<ParameterChange<T>>();
 
@@ -170,7 +185,7 @@ export class ChangeSet<T extends StringIndexedObject> {
           previousValue: current[k] ?? null,
           newValue: desired[k] ?? null,
           operation: ParameterOperation.NOOP,
-          isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
+          ...sensitivity(parameterOptions?.[k]),
         })
 
         continue;
@@ -182,7 +197,7 @@ export class ChangeSet<T extends StringIndexedObject> {
           previousValue: current[k] ?? null,
           newValue: null,
           operation: ParameterOperation.REMOVE,
-          isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
+          ...sensitivity(parameterOptions?.[k]),
         })
 
         continue;
@@ -194,7 +209,7 @@ export class ChangeSet<T extends StringIndexedObject> {
           previousValue: null,
           newValue: desired[k] ?? null,
           operation: ParameterOperation.ADD,
-          isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
+          ...sensitivity(parameterOptions?.[k]),
         })
 
         continue;
@@ -205,7 +220,7 @@ export class ChangeSet<T extends StringIndexedObject> {
         previousValue: current[k] ?? null,
         newValue: desired[k] ?? null,
         operation: ParameterOperation.MODIFY,
-        isSensitive: parameterOptions?.[k]?.isSensitive ?? false,
+        ...sensitivity(parameterOptions?.[k]),
       })
     }
 

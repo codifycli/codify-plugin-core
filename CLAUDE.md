@@ -114,6 +114,9 @@ src/
   multiple, etc.)
 - `src/plan/plan.ts`: Plan calculation logic (~500 lines)
 - `src/plan/change-set.ts`: Parameter-level diff algorithm
+- `src/resource/parameter-paths.ts`: Typed parameter paths (`ConfigPath<T>`), path parsing and JSON schema lookup
+- `src/resource/parsed-parameter-setting.ts`: Parameter settings parser (equality, filtering, sensitivity, stateful)
+- `src/utils/schema-utils.ts`: `findUndescribedFields()` for enforcing schema documentation in plugin builds
 - `bin/build.js`: Documentation/schema builder for plugin implementations
 
 ### Resource Settings
@@ -125,7 +128,12 @@ Resources are configured via `ResourceSettings<T>` returned by `getSettings()`:
 - `operatingSystems`: Supported OS platforms (darwin/linux/win32)
 - `linuxDistros`: Supported Linux distributions (optional)
 - `allowMultiple`: Whether multiple instances can coexist (requires `matcher` function)
-- `parameterSettings`: Per-parameter configuration (equals functions, transformations, stateful types, sensitivity)
+- `parameterSettings`: Per-parameter configuration (types, equals functions, transformations, stateful parameters,
+  sensitivity). Keys are top level parameter names or typed nested paths (`'envFiles[*].contents[*].value'`) used only
+  when a nested value needs a setting. Parsed into one normalized `ParsedParameterSetting` per top level parameter by
+  `src/resource/parsed-parameter-setting.ts` (merges stateful parameter defaults, infers array/object types from the
+  schema, resolves equality/filtering/sensitive paths). Nothing outside that file should special case stateful,
+  array or nested parameters.
 - `isSensitive`: Marks resource as sensitive (prevents auto-import, hides values)
 - `dependencies`: Resource IDs this resource depends on
 - `canDestroy`: Whether resource can be destroyed (default: true)

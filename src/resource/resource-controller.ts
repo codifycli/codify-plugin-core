@@ -61,19 +61,19 @@ export class ResourceController<T extends StringIndexedObject> {
     await this.applyTransformations(parameters, undefined, true);
     this.addDefaultValues(parameters);
 
+    // Schema validation uses pre transformation parameters
+    // @ts-expect-error Non esm package
+    const cleanedParameters = cleanDeep(originalParameters, {
+      nullValues: true,
+      undefinedValues: true,
+      emptyArrays: false,
+      emptyStrings: false,
+      emptyObjects: false,
+      NaNValues: false
+    });
+
     if (this.schemaValidator) {
-      // Schema validator uses pre transformation parameters
-      const isValid = this.schemaValidator(
-        // @ts-expect-error Non esm package
-        cleanDeep(originalParameters, {
-          nullValues: true,
-          undefinedValues: true,
-          emptyArrays: false,
-          emptyStrings: false,
-          emptyObjects: false,
-          NaNValues: false
-        })
-      );
+      const isValid = this.schemaValidator(cleanedParameters);
 
       if (!isValid) {
         return {
@@ -81,6 +81,22 @@ export class ResourceController<T extends StringIndexedObject> {
           resourceName: core.name,
           resourceType: core.type,
           schemaValidationErrors: this.schemaValidator?.errors ?? [],
+        }
+      }
+    }
+
+    // Zod refinements (.refine / .superRefine) can't be expressed in JSON schema, so they are only checked here
+    if (this.parsedSettings.zodSchema) {
+      const result = this.parsedSettings.zodSchema.safeParse(cleanedParameters);
+      if (!result.success) {
+        return {
+          customValidationErrorMessage: result.error.issues
+            .map((issue) => (issue.path.length > 0 ? `${issue.path.join('.')}: ${issue.message}` : issue.message))
+            .join('\n'),
+          isValid: false,
+          resourceName: core.name,
+          resourceType: core.type,
+          schemaValidationErrors: [],
         }
       }
     }

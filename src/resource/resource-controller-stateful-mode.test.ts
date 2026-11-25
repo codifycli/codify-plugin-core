@@ -181,7 +181,7 @@ describe('Resource tests for stateful plans', () => {
           id: 'type',
           operatingSystems: [OS.Darwin],
           parameterSettings: {
-            propD: { type: 'stateful', definition: statefulParameter },
+            propD: { stateful: statefulParameter },
           }
         };
       }
