@@ -11,7 +11,7 @@ import { EventEmitter } from 'node:events';
 import stripAnsi from 'strip-ansi';
 
 import { Shell, Utils } from '../utils/index.js';
-import { VerbosityLevel } from '../utils/verbosity-level.js';
+import { CommandOutput } from '../utils/command-output.js';
 import { IPty, SpawnError, SpawnOptions, SpawnResult, SpawnStatus } from './index.js';
 
 EventEmitter.defaultMaxListeners = 1000;
@@ -109,9 +109,7 @@ export class SequentialPty implements IPty {
       });
 
       mPty.onData((data) => {
-        if (VerbosityLevel.get() > 0) {
-          process.stdout.write(data);
-        }
+        CommandOutput.write(data);
 
         output.push(data.toString());
         this.appendLog(data.toString());
