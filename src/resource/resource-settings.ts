@@ -110,6 +110,17 @@ export interface ResourceSettings<T extends StringIndexedObject> {
   dependencies?: string[];
 
   /**
+   * Type ids of resources that must exist for this resource to work (ex: `homebrew` for a resource installed with brew,
+   * `xcode-tools` for a resource that runs git, make or a compiler on macOS). Unlike {@link dependencies}, which only
+   * orders resources that are already in the config, the CLI adds a default config for any required type that is
+   * missing. Required resources are always applied first.
+   *
+   * Evaluated on the machine the plugin runs on, so OS specific requirements can be expressed with
+   * `Utils.isMacOS() ? ['xcode-tools'] : []`. Defaults to `[]` (nothing is required).
+   */
+  requires?: string[];
+
+  /**
    * Options for configuring parameters operations including overriding the equals function, adding default values,
    * applying input transformations, marking values sensitive and attaching stateful parameters.
    *

@@ -646,4 +646,25 @@ describe('Plugin tests', () => {
       expect(() => Plugin.create('testPlugin', [self])).toThrowError(/supersededBy/);
     })
   })
+  describe('requires', () => {
+    it('Returns requires in the resource definitions (empty when not set)', async () => {
+      const needsBrew = new class extends TestResource {
+        getSettings(): ResourceSettings<TestConfig> {
+          return { id: 'needs-brew', operatingSystems: [OS.Darwin], requires: ['homebrew'] };
+        }
+      }
+
+      const standalone = new class extends TestResource {
+        getSettings(): ResourceSettings<TestConfig> {
+          return { id: 'standalone', operatingSystems: [OS.Darwin] };
+        }
+      }
+
+      const testPlugin = Plugin.create('testPlugin', [needsBrew, standalone]);
+      const { resourceDefinitions } = await testPlugin.initialize({});
+
+      expect((resourceDefinitions.find((d) => d.type === 'needs-brew') as any)?.requires).toEqual(['homebrew']);
+      expect((resourceDefinitions.find((d) => d.type === 'standalone') as any)?.requires).toEqual([]);
+    })
+  })
 });

@@ -30,6 +30,7 @@ export abstract class Resource<T extends StringIndexedObject> {
    * - removeStatefulParametersBeforeDestory: Call the delete methods of stateful parameters before destorying
    * the base resource. Defaults to false.
    * - dependencies: Specify the ids of any resources that this resource depends on
+   * - requires: Specify the ids of resources that must exist. The CLI adds them if they are missing from the config
    * - parameterSettings: Parameter specific settings. Use this to define custom equals functions, default values
    * and input transformations
    * - inputTransformation: Transform the input value.

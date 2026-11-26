@@ -30,6 +30,7 @@ export class ParsedResourceSettings<T extends StringIndexedObject> implements Om
 
   removeStatefulParametersBeforeDestroy?: boolean | undefined;
   dependencies?: string[] | undefined;
+  requires?: string[] | undefined;
   transformation?: InputTransformation;
 
   operatingSystems!: Array<OS>;
