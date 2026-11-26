@@ -7,7 +7,7 @@ import stripAnsi from 'strip-ansi';
 
 import { debugLog } from '../utils/debug.js';
 import { Shell, Utils } from '../utils/index.js';
-import { VerbosityLevel } from '../utils/verbosity-level.js';
+import { CommandOutput } from '../utils/command-output.js';
 import { IPty, SpawnError, SpawnOptions, SpawnResult } from './index.js';
 import { PromiseQueue } from './promise-queue.js';
 
@@ -88,10 +88,7 @@ export class BackgroundPty implements IPty {
             data: strippedData,
           });
         } else {
-          // Print to stdout if the verbosity level is above 0
-          if (VerbosityLevel.get() > 0) {
-            process.stdout.write(data);
-          }
+          CommandOutput.write(data);
         }
       })
 

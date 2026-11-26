@@ -83,6 +83,11 @@ documentation and validate schemas.
   handling
 - `getPty()`: Access current PTY from async local storage context
 - All shell execution goes through this abstraction for consistent output handling and root privilege escalation
+- Command output goes through `CommandOutput.write()` (`src/utils/command-output.ts`). When the CLI sets
+  `CODIFY_FORWARD_COMMAND_OUTPUT=1`, all of it is sent as `command_output` IPC messages (`{ data }`, no reply) and the CLI
+  decides what to show (verbose mode, or a resource apply that is taking a while). Otherwise (older CLIs) it is written
+  to stdout only when `VerbosityLevel > 0`. Plugins that run commands themselves should use it too. `console.log`
+  lines (ex: `Running command: ...`) stay on stdout and are always shown.
 
 **IPC Communication** (`src/messages/`):
 

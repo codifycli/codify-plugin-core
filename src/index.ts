@@ -21,6 +21,7 @@ export * from './utils/file-utils.js'
 export * from './utils/functions.js'
 export * from './utils/schema-utils.js'
 export * from './utils/index.js'
+export * from './utils/command-output.js'
 export * from './utils/verbosity-level.js'
 export * from 'zod/v4';
 export * from './utils/shell-escape.js'
