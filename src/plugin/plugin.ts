@@ -90,7 +90,7 @@ export class Plugin {
 
           return {
             dependencies: r.dependencies,
-            // Not in the @codifycli/schemas ResourceDefinition type yet. Older CLIs ignore it (the schema allows extra keys).
+            // In the ResourceDefinition type since @codifycli/schemas 1.8.0. Older CLIs ignore it (the schema allows extra keys).
             requires: r.requires,
             type: r.typeId,
             sensitiveParameters,
