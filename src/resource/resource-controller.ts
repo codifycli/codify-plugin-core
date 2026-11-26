@@ -24,6 +24,7 @@ export class ResourceController<T extends StringIndexedObject> {
 
   readonly typeId: string;
   readonly dependencies: string[];
+  readonly requires: string[];
 
   protected ajv?: Ajv;
   protected schemaValidator?: ValidateFunction;
@@ -36,6 +37,7 @@ export class ResourceController<T extends StringIndexedObject> {
 
     this.typeId = this.settings.id;
     this.dependencies = this.settings.dependencies ?? [];
+    this.requires = this.settings.requires ?? [];
     this.parsedSettings = new ParsedResourceSettings<T>(this.settings);
 
     if (this.parsedSettings.schema) {

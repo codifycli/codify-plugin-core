@@ -135,7 +135,9 @@ Resources are configured via `ResourceSettings<T>` returned by `getSettings()`:
   schema, resolves equality/filtering/sensitive paths). Nothing outside that file should special case stateful,
   array or nested parameters.
 - `isSensitive`: Marks resource as sensitive (prevents auto-import, hides values)
-- `dependencies`: Resource IDs this resource depends on
+- `dependencies`: Resource IDs this resource depends on (soft: only orders resources present in the config)
+- `requires`: Resource IDs that must exist (ex: `homebrew`, `xcode-tools` on macOS). The CLI adds a default config for
+  missing ones. Sent in the initialize response (`ResourceDefinition.requires`, `@codifycli/schemas` 1.8.0)
 - `canDestroy`: Whether resource can be destroyed (default: true)
 
 ## Implementation Notes
